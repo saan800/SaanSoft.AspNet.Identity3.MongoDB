@@ -524,14 +524,12 @@ namespace AspNet.Identity3.MongoDB
 		{
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			EnsureClaimsNotNull(user);
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
 			if (newClaim == null) throw new ArgumentNullException(nameof(newClaim));
-			
-			if (user.Claims == null) user.Claims = new List<IdentityClaim>();
+			EnsureClaimsNotNull(user);
 
 
-			var matchedClaims = user.Claims.Where(uc=> uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type);
+			var matchedClaims = user.Claims.Where(uc=> uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToList();
 			if (matchedClaims.Any())
 			{
 				foreach (var matchedClaim in matchedClaims)
@@ -539,8 +537,7 @@ namespace AspNet.Identity3.MongoDB
 					matchedClaim.ClaimValue = newClaim.Value;
 					matchedClaim.ClaimType = newClaim.Type;
 				}
-
-
+				
 				var update = Builders<TUser>.Update.Set(x => x.Claims, user.Claims);
 				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 			}
@@ -561,17 +558,13 @@ namespace AspNet.Identity3.MongoDB
 			if (!user.Claims.Any()) return;
 			if (claims == null || !claims.Any()) return;
 			
-			var existingClaimsList = new List<IdentityClaim>();
-			foreach (var c in 
-					from claim in claims 
-					where user.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value) 
-					select user.Claims.Single(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value))
+			var existingClaimsList = user.Claims.Where(uc => claims.Any(c => c.Type == uc.ClaimType && c.Value == uc.ClaimValue)).ToList();
+			if (!existingClaimsList.Any()) return;
+
+			foreach (var c in  existingClaimsList)
 			{
-				existingClaimsList.Add(c);
 				user.Claims.Remove(c);
 			}
-
-			if (!existingClaimsList.Any()) return;
 
 			// update user claims in the database
 			var update = Builders<TUser>.Update.PullAll(x => x.Claims, existingClaimsList);
@@ -587,12 +580,18 @@ namespace AspNet.Identity3.MongoDB
 		/// A <see cref="Task{TResult}"/> that represents the result of the asynchronous query, a list of <typeparamref name="TUser"/> who
 		/// contain the specified claim.
 		/// </returns>
-		public virtual Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
 
-			throw new NotImplementedException();
+			var claimBuilder = Builders<IdentityClaim>.Filter;
+			var claimFilter = claimBuilder.Eq(x => x.ClaimType, claim.Type) & claimBuilder.Eq(x => x.ClaimValue, claim.Value);
+
+			var fBuilder = Builders<TUser>.Filter;
+			var filter = fBuilder.ElemMatch(x => x.Claims, claimFilter) ;
+
+			return await _collection.Find(filter).ToListAsync(cancellationToken);
 		}
 
 		#endregion

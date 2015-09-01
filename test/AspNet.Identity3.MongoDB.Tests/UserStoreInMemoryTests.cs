@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using Xunit;
@@ -46,14 +48,13 @@ namespace AspNet.Identity3.MongoDB.Tests
 				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.DeleteAsync(null));
 
 				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.GetClaimsAsync(null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.AddClaimsAsync(null, null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.ReplaceClaimAsync(null, null, null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.RemoveClaimsAsync(null, null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.GetUsersForClaimAsync(null));
 
 				// TODO:
 				// AddLoginAsync
-				// GetClaimsAsync
-				// AddClaimsAsync
-				// ReplaceClaimAsync
-				// RemoveClaimsAsync
-				// GetUsersForClaimAsync
 
 			}
 
@@ -62,24 +63,26 @@ namespace AspNet.Identity3.MongoDB.Tests
 			{
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.GetUserIdAsync(null));
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.GetUserNameAsync(null));
-				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.SetUserNameAsync(null, null));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.SetUserNameAsync(null, "user name"));
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.GetNormalizedUserNameAsync(null));
-				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.SetNormalizedUserNameAsync(null, null));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.SetNormalizedUserNameAsync(null, "normalised user name"));
 				
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.CreateAsync(null));
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.UpdateAsync(null));
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.DeleteAsync(null));
 
 				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.GetClaimsAsync(null));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.AddClaimsAsync(null, new List<Claim>()));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.ReplaceClaimAsync(null, new Claim("type", "value"), new Claim("new type", "new value")));
+				await Assert.ThrowsAsync<ArgumentNullException>("claim", async () => await _userStore.ReplaceClaimAsync(new IdentityUser("Bob"), null, new Claim("new type", "new value")));
+				await Assert.ThrowsAsync<ArgumentNullException>("newClaim", async () => await _userStore.ReplaceClaimAsync(new IdentityUser("Bob"), new Claim("type", "value"), null));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.RemoveClaimsAsync(null, new List<Claim>()));
+				await Assert.ThrowsAsync<ArgumentNullException>("claim", async () => await _userStore.GetUsersForClaimAsync(null));
+
+
 
 				// TODO:
 				// AddLoginAsync - check user and login
-
-				// GetClaimsAsync - user
-				// AddClaimsAsync - user
-				// ReplaceClaimAsync - user, claim, newClaim
-				// RemoveClaimsAsync - user
-				// GetUsersForClaimAsync - claim
 			}
 		}
 

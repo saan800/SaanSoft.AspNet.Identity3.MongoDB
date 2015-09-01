@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace AspNet.Identity3.MongoDB.Tests
@@ -28,6 +29,18 @@ namespace AspNet.Identity3.MongoDB.Tests
 			IdentityClaimAssert.Equal(expected.Claims, actual.Claims);
 			IdentityClaimAssert.Equal(expected.AllClaims, actual.AllClaims);
 			IdentityUserLoginAssert.Equal(expected.Logins, actual.Logins);
+		}
+		
+		public static void Equal(IEnumerable<IdentityUser> expected, IEnumerable<IdentityUser> actual)
+		{
+			Assert.True((expected == null && actual == null) || (expected != null && actual != null));
+			Assert.Equal(expected.Count(), actual.Count());
+
+			foreach (var e in expected)
+			{
+				var act = actual.SingleOrDefault(a => a.Id == e.Id);
+				IdentityUserAssert.Equal(e, act);
+			}
 		}
 	}
 }

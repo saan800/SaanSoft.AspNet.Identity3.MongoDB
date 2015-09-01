@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using Microsoft.Framework.Configuration;
 using MongoDB.Driver;
 
@@ -8,11 +7,12 @@ namespace AspNet.Identity3.MongoDB.Tests
 {
 	public class DatabaseFixture : IDisposable
 	{
-		/// <param name="collectionPrefix">Unique prefix for the collection. Used so dropping collections during a test run wont interfere with other tests running in parallel. Suggest using the test class name/namespace.</param>
+		/// <param name="collectionPrefix">Unique prefix for the collection(s). Used so dropping collections during a test run wont interfere with other test classes running in parallel. Suggest using the test class Name/FullName.</param>
 		/// <param name="databaseName">Defaults to "Testing"</param>
 		/// <remarks>
 		/// dropCollectionOnInit: Defaults to true
 		/// dropCollectionOnDispose: Defaults to false
+		/// config.json in test project: requires "data:connectionString" for the MongoDB connection string details
 		/// </remarks>
 		/// <example>
 		/// collectionPrefix = $"{typeof([TEST CLASS]).Name}");
@@ -20,11 +20,12 @@ namespace AspNet.Identity3.MongoDB.Tests
 		public DatabaseFixture(string collectionPrefix, string databaseName = null) : this(collectionPrefix, databaseName, true, false) { }
 
 
-		/// <param name="collectionPrefix">Unique prefix for the collection. Used so dropping collections during a test run wont interfere with other tests running in parallel. Suggest using the test class name/namespace.</param>
+		/// <param name="collectionPrefix">Unique prefix for the collection(s). Used so dropping collections during a test run wont interfere with other test classes running in parallel. Suggest using the test class Name/FullName.</param>
 		/// <param name="dropCollectionOnInit">Drops any collections in the database that start the collectionPrefix.</param>
 		/// <param name="dropCollectionOnDispose">Drops any collections created during the test run and any collections in the database that start the collectionPrefix.</param>
 		/// <remarks>
 		/// databaseName: Defaults to "Testing"
+		/// config.json in test project: requires "data:connectionString" for the MongoDB connection string details
 		/// </remarks>
 		/// <example>
 		/// collectionPrefix = $"{typeof([TEST CLASS]).Name}");
@@ -32,10 +33,13 @@ namespace AspNet.Identity3.MongoDB.Tests
 		public DatabaseFixture(string collectionPrefix, bool dropCollectionOnInit, bool dropCollectionOnDispose) : this(collectionPrefix, null, dropCollectionOnInit, dropCollectionOnDispose) { }
 
 
-		/// <param name="collectionPrefix">Unique prefix for the collection. Used so dropping collections during a test run wont interfere with other tests running in parallel. Suggest using the test class name/namespace.</param>
+		/// <param name="collectionPrefix">Unique prefix for the collection(s). Used so dropping collections during a test run wont interfere with other test classes running in parallel. Suggest using the test class Name/FullName.</param>
 		/// <param name="databaseName">Defaults to "Testing"</param>
 		/// <param name="dropCollectionOnInit">Drops any collections in the database that start the collectionPrefix.</param>
 		/// <param name="dropCollectionOnDispose">Drops any collections created during the test run and any collections in the database that start the collectionPrefix.</param>
+		/// <remarks>
+		/// config.json in test project: requires "data:connectionString" for the MongoDB connection string details
+		/// </remarks>
 		/// <example>
 		/// collectionPrefix = $"{typeof([TEST CLASS]).Name}");
 		/// </example>
