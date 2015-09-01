@@ -12,10 +12,11 @@ namespace AspNet.Identity3.MongoDB.Tests
 	public class RoleStoreTests : IDisposable
 	{
 		private readonly DatabaseFixture _databaseFixture;
+		private readonly IMongoCollection<IdentityUser> _userCollection;
 		private readonly IMongoCollection<IdentityRole> _roleCollection;
-		private readonly string _collectionPrefix;
+		private readonly IdentityDatabaseContext _databaseContext;
 
-		private readonly RoleStore<IdentityRole> _roleStore;
+		private readonly RoleStore<IdentityUser, IdentityRole> _roleStore;
 		private readonly IdentityErrorDescriber _errorDescriber;
 
 		public RoleStoreTests(string collectionPrefix)
@@ -23,10 +24,11 @@ namespace AspNet.Identity3.MongoDB.Tests
 			collectionPrefix = $"{typeof(RoleStoreTests).Name}_{collectionPrefix}";
 
 			_databaseFixture = new DatabaseFixture(collectionPrefix);
+			_userCollection = _databaseFixture.GetCollection<IdentityUser>();
 			_roleCollection = _databaseFixture.GetCollection<IdentityRole>();
-			_collectionPrefix = collectionPrefix;
+			_databaseContext = new IdentityDatabaseContext { Users = _userCollection, Roles = _roleCollection };
 
-			_roleStore = new RoleStore<IdentityRole>(_roleCollection);
+			_roleStore = new RoleStore<IdentityUser, IdentityRole>(_databaseContext);
 			_errorDescriber = new IdentityErrorDescriber();
 		}
 
@@ -34,110 +36,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 		{
 			_databaseFixture.Dispose();
 		}
-
-		public class Constructors : RoleStoreTests
-		{
-			public Constructors() : base(typeof(Constructors).Name) { }
-
-			[Fact]
-			public void Can_inisialise_from_connectionString()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var roleStore = new RoleStoreHelper(_databaseFixture.ConnectionString, _databaseFixture.DatabaseName, collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.DatabaseName);
-				Assert.Equal(collectionName, roleStore.CollectionName);
-
-				Assert.NotNull(roleStore.MongoClient);
-				Assert.NotNull(roleStore.MongoDatabase);
-				Assert.NotNull(roleStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, roleStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_connectionString_with_default_db_and_collection_names()
-			{
-				// arrange
-				var roleStore = new RoleStoreHelper(_databaseFixture.ConnectionString);
-
-				// assert
-				string defaultDatabaseName = "AspNetIdentity";
-				string defaultCollectionName = "AspNetRoles";
-				Assert.Equal(defaultDatabaseName, roleStore.DatabaseName);
-				Assert.Equal(defaultCollectionName, roleStore.CollectionName);
-
-				Assert.Equal(defaultDatabaseName, roleStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(defaultDatabaseName, roleStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(defaultCollectionName, roleStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoClient()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var roleStore = new RoleStoreHelper(_databaseFixture.GetMongoClient(), _databaseFixture.DatabaseName, collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.DatabaseName);
-				Assert.Equal(collectionName, roleStore.CollectionName);
-
-				Assert.NotNull(roleStore.MongoClient);
-				Assert.NotNull(roleStore.MongoDatabase);
-				Assert.NotNull(roleStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, roleStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoDatabase()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var roleStore = new RoleStoreHelper(_databaseFixture.GetMongoDatabase(), collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.DatabaseName);
-				Assert.Equal(collectionName, roleStore.CollectionName);
-
-				Assert.NotNull(roleStore.MongoClient);
-				Assert.NotNull(roleStore.MongoDatabase);
-				Assert.NotNull(roleStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, roleStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoCollection()
-			{
-				// arrange
-				string collectionName = _roleCollection.CollectionNamespace.CollectionName;
-				var roleStore = new RoleStoreHelper(_roleCollection);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.DatabaseName);
-				Assert.Equal(collectionName, roleStore.CollectionName);
-
-				Assert.NotNull(roleStore.MongoClient);
-				Assert.NotNull(roleStore.MongoDatabase);
-				Assert.NotNull(roleStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, roleStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, roleStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-		}
-
+		
 		public class CreateAsyncMethod : RoleStoreTests
 		{
 			public CreateAsyncMethod() : base(typeof(CreateAsyncMethod).Name) { }
@@ -607,31 +506,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, roleFromDb.Claims);
 			}
 		}
-
-		#region HELPER CLASS
-
-		class RoleStoreHelper : RoleStore<IdentityRole>
-		{
-			public RoleStoreHelper(string connectionString, string databaseName = null, string collectionName = null) : base(connectionString, databaseName, collectionName) { }
-
-			public RoleStoreHelper(IMongoClient client, string databaseName = null, string collectionName = null) : base(client, databaseName, collectionName) { }
-
-			public RoleStoreHelper(IMongoDatabase database, string collectionName = null) : base(database, collectionName) { }
-
-			public RoleStoreHelper(IMongoCollection<IdentityRole> collection) : base(collection) { }
-
-
-			#region helper methods to get protected fields
-
-			public string DatabaseName => base._databaseName;
-			public string CollectionName => base._collectionName;
-			public IMongoClient MongoClient => base._client;
-			public IMongoDatabase MongoDatabase => base._database;
-			public IMongoCollection<IdentityRole> MongoCollection => base._collection;
-
-			#endregion
-		}
-
-		#endregion
+		
 	}
 }

@@ -10,116 +10,40 @@ using MongoDB.Driver;
 
 namespace AspNet.Identity3.MongoDB
 {
-	public class RoleStore<TRole> : 
-		RoleStore<TRole, string>
+	public class RoleStore<TUser, TRole> : RoleStore<TUser, TRole, string>
+		where TUser : IdentityUser<string>
 		where TRole : IdentityRole<string>
 	{
-		public RoleStore(string connectionString, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(connectionString, databaseName, collectionName, collectionSettings, describer) { }
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext) : base(databaseContext, null) { }
 
-		public RoleStore(IMongoClient client, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(client, databaseName, collectionName, collectionSettings, describer) { }
-
-		public RoleStore(IMongoDatabase database, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(database, collectionName, collectionSettings, describer) { }
-
-		public RoleStore(IMongoCollection<TRole> collection, IdentityErrorDescriber describer = null) : 
-			base(collection, describer) { }
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, IdentityErrorDescriber describer) : base(databaseContext, describer) { }
 	}
 
-	public class RoleStore<TRole, TKey> :
+	public class RoleStore<TUser, TRole, TKey> :
 		IQueryableRoleStore<TRole>,
 		IRoleClaimStore<TRole>
+		where TUser : IdentityUser<TKey>
 		where TRole : IdentityRole<TKey>
 		where TKey : IEquatable<TKey>
 	{
-		#region Constructor and MongoDB Connections
-	
-		protected string _databaseName;
-		protected string _collectionName;
-		protected IMongoClient _client;
-		protected IMongoDatabase _database;
-		protected IMongoCollection<TRole> _collection;
 
-		public RoleStore(string connectionString, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext) : this(databaseContext, null) { }
+
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, IdentityErrorDescriber describer)
 		{
-			if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+			if (databaseContext == null) throw new ArgumentNullException(nameof(databaseContext));
 
-			SetProperties(databaseName, collectionName, describer);
-			SetDbConnection(connectionString, collectionSettings);
-		}
-
-		public RoleStore(IMongoClient client, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
-		{
-			if (client == null) throw new ArgumentNullException(nameof(client));
-
-			SetProperties(databaseName, collectionName, describer);
-			SetDbConnection(client, collectionSettings);
-		}
-
-		public RoleStore(IMongoDatabase database, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
-		{
-			if (database == null) throw new ArgumentNullException(nameof(database));
-
-			SetProperties(database.DatabaseNamespace.DatabaseName, collectionName, describer);
-			SetDbConnection(database, collectionSettings);
-		}
-
-		public RoleStore(IMongoCollection<TRole> collection, IdentityErrorDescriber describer = null)
-		{
-			if (collection == null) throw new ArgumentNullException(nameof(collection));
-
-			_collection = collection;
-			_database = collection.Database;
-			_client = _database.Client;
-
-			SetProperties(_database.DatabaseNamespace.DatabaseName, _collection.CollectionNamespace.CollectionName, describer);
-		}
-
-		protected void SetProperties(string databaseName, string collectionName, IdentityErrorDescriber describer)
-		{
-			_databaseName = string.IsNullOrWhiteSpace(databaseName) ? DefaultSettings.DatabaseName : databaseName;
-			_collectionName = string.IsNullOrWhiteSpace(collectionName) ? DefaultSettings.RoleCollectionName : collectionName;
+			DatabaseContext = databaseContext;
 			ErrorDescriber = describer ?? new IdentityErrorDescriber();
 		}
 
-		/// <summary>
-		/// IMPORTANT: ensure _databaseName and _collectionName are set (if needed) before calling this
-		/// </summary>
-		/// <param name="connectionString"></param>
-		protected void SetDbConnection(string connectionString, MongoCollectionSettings collectionSettings)
-		{
-			SetDbConnection(new MongoClient(connectionString), collectionSettings);
-		}
 
-		/// <summary>
-		/// IMPORTANT: ensure _databaseName and _collectionName are set (if needed) before calling this
-		/// </summary>
-		/// <param name="client"></param>
-		protected void SetDbConnection(IMongoClient client, MongoCollectionSettings collectionSettings)
-		{
-			SetDbConnection(client.GetDatabase(_databaseName), collectionSettings);
-		}
-
-		/// <summary>
-		/// IMPORTANT: ensure _collectionName is set (if needed) before calling this
-		/// </summary>
-		/// <param name="database"></param>
-		protected void SetDbConnection(IMongoDatabase database, MongoCollectionSettings collectionSettings)
-		{
-			_database = database;
-			_client = _database.Client;
-			collectionSettings = collectionSettings ?? DefaultSettings.CollectionSettings();
-
-			_collection = _database.GetCollection<TRole>(_collectionName, collectionSettings);
-		}
-
-		#endregion
+		protected IdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
 
 		/// <summary>
 		/// Used to generate public API error messages
 		/// </summary>
-		public virtual IdentityErrorDescriber ErrorDescriber { get; set; }
+		protected IdentityErrorDescriber ErrorDescriber { get; set; }
 
 		#region IRoleStore<TRole> (base interface for both IQueryableRoleStore<TRole> and IRoleClaimStore<TRole>)
 
@@ -137,7 +61,7 @@ namespace AspNet.Identity3.MongoDB
 
 			try
 			{
-				await _collection.InsertOneAsync(role, cancellationToken);
+				await DatabaseContext.Roles.InsertOneAsync(role, cancellationToken);
 			}
 			catch(MongoWriteException)
 			{
@@ -161,7 +85,7 @@ namespace AspNet.Identity3.MongoDB
 			
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true};
-			await _collection.ReplaceOneAsync(filter, role, updateOptions, cancellationToken);
+			await DatabaseContext.Roles.ReplaceOneAsync(filter, role, updateOptions, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -178,7 +102,7 @@ namespace AspNet.Identity3.MongoDB
 			if (role == null) throw new ArgumentNullException(nameof(role));
 
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
-			await _collection.DeleteOneAsync(filter, cancellationToken);
+			await DatabaseContext.Roles.DeleteOneAsync(filter, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -243,7 +167,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, id);
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return _collection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.Roles.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -261,7 +185,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName);
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return _collection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.Roles.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -395,7 +319,7 @@ namespace AspNet.Identity3.MongoDB
 				//		Temporary list solution from http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc
 				ThrowIfDisposed();
 				var filter = Builders<TRole>.Filter.Ne(x => x.Id, default(TKey));
-				var list = _collection.Find(filter).ToListAsync().Result;
+				var list = DatabaseContext.Roles.Find(filter).ToListAsync().Result;
 
 				return list.AsQueryable();
 			}
@@ -444,7 +368,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TRole>.Filter;
 			var filter = fBuilder.Ne(x => x.Id, role.Id) & fBuilder.Eq(x => x.Name, role.Name);
 
-			var result = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+			var result = await DatabaseContext.Roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
 			return result != null;
 		}
 
@@ -477,7 +401,7 @@ namespace AspNet.Identity3.MongoDB
 		protected virtual async Task<UpdateResult> DoRoleDetailsUpdate(TKey roleId, UpdateDefinition<TRole> update, UpdateOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, roleId);
-			return await _collection.UpdateOneAsync(filter, update, options, cancellationToken);
+			return await DatabaseContext.Roles.UpdateOneAsync(filter, update, options, cancellationToken);
 		}
 
 		#endregion

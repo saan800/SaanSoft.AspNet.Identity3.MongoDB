@@ -10,22 +10,13 @@ using System.Threading.Tasks;
 
 namespace AspNet.Identity3.MongoDB
 {
-	public class UserStore<TUser, TRole> 
-		: UserStore<TUser, TRole, string>
+	public class UserStore<TUser, TRole> : UserStore<TUser, TRole, string>
 		where TUser : IdentityUser<string>
 		where TRole : IdentityRole<string>
 	{
-		public UserStore(string connectionString, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(connectionString, databaseName, collectionName, collectionSettings, describer) { }
+		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext) : base(databaseContext, null) { }
 
-		public UserStore(IMongoClient client, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(client, databaseName, collectionName, collectionSettings, describer) { }
-
-		public UserStore(IMongoDatabase database, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null) : 
-			base(database, collectionName, collectionSettings, describer) { }
-
-		public UserStore(IMongoCollection<TUser> collection, IdentityErrorDescriber describer = null) : 
-			base(collection, describer) { }
+		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, IdentityErrorDescriber describer) : base(databaseContext, describer) { }
 	}
 
 	public class UserStore<TUser, TRole, TKey> :
@@ -43,93 +34,24 @@ namespace AspNet.Identity3.MongoDB
 		where TRole : IdentityRole<TKey>
 		where TKey : IEquatable<TKey>
 	{
-		#region Constructor and MongoDB Connections
 
-		protected string _databaseName;
-		protected string _collectionName;
-		protected IMongoClient _client;
-		protected IMongoDatabase _database;
-		protected IMongoCollection<TUser> _collection;
+		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext) : this(databaseContext, null) { }
 
-		public UserStore(string connectionString, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
+		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, IdentityErrorDescriber describer)
 		{
-			if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+			if (databaseContext == null) throw new ArgumentNullException(nameof(databaseContext));
 
-			SetProperties(databaseName, collectionName, describer);
-			SetDbConnection(connectionString, collectionSettings);
-		}
-
-		public UserStore(IMongoClient client, string databaseName = null, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
-		{
-			if (client == null) throw new ArgumentNullException(nameof(client));
-
-			SetProperties(databaseName, collectionName, describer);
-			SetDbConnection(client, collectionSettings);
-		}
-
-		public UserStore(IMongoDatabase database, string collectionName = null, MongoCollectionSettings collectionSettings = null, IdentityErrorDescriber describer = null)
-		{
-			if (database == null) throw new ArgumentNullException(nameof(database));
-
-			SetProperties(database.DatabaseNamespace.DatabaseName, collectionName, describer);
-			SetDbConnection(database, collectionSettings);
-		}
-
-		public UserStore(IMongoCollection<TUser> collection, IdentityErrorDescriber describer = null)
-		{
-			if (collection == null) throw new ArgumentNullException(nameof(collection));
-
-			_collection = collection;
-			_database = collection.Database;
-			_client = _database.Client;
-
-			SetProperties(_database.DatabaseNamespace.DatabaseName, _collection.CollectionNamespace.CollectionName, describer);
-		}
-
-		protected void SetProperties(string databaseName, string collectionName, IdentityErrorDescriber describer)
-		{
-			_databaseName = string.IsNullOrWhiteSpace(databaseName) ? DefaultSettings.DatabaseName : databaseName;
-			_collectionName = string.IsNullOrWhiteSpace(collectionName) ? DefaultSettings.UserCollectionName : collectionName;
+			DatabaseContext = databaseContext;
 			ErrorDescriber = describer ?? new IdentityErrorDescriber();
 		}
 
-		/// <summary>
-		/// IMPORTANT: ensure _databaseName and _collectionName are set (if needed) before calling this
-		/// </summary>
-		/// <param name="connectionString"></param>
-		protected void SetDbConnection(string connectionString, MongoCollectionSettings collectionSettings)
-		{
-			SetDbConnection(new MongoClient(connectionString), collectionSettings);
-		}
 
-		/// <summary>
-		/// IMPORTANT: ensure _databaseName and _collectionName are set (if needed) before calling this
-		/// </summary>
-		/// <param name="client"></param>
-		protected void SetDbConnection(IMongoClient client, MongoCollectionSettings collectionSettings)
-		{
-			SetDbConnection(client.GetDatabase(_databaseName), collectionSettings);
-		}
-
-		/// <summary>
-		/// IMPORTANT: ensure _collectionName is set (if needed) before calling this
-		/// </summary>
-		/// <param name="database"></param>
-		protected void SetDbConnection(IMongoDatabase database, MongoCollectionSettings collectionSettings)
-		{
-			_database = database;
-			_client = _database.Client;
-			collectionSettings = collectionSettings ?? DefaultSettings.CollectionSettings();
-			_collection = _database.GetCollection<TUser>(_collectionName, collectionSettings);
-		}
-
-
-		#endregion
+		protected IdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
 
 		/// <summary>
 		/// Used to generate public API error messages
 		/// </summary>
-		public virtual IdentityErrorDescriber ErrorDescriber { get; set; }
+		protected IdentityErrorDescriber ErrorDescriber { get; set; }
 
 		#region IUserStore<TUser> (base inteface for the other interfaces)
 
@@ -226,7 +148,7 @@ namespace AspNet.Identity3.MongoDB
 
 			try
 			{
-				await _collection.InsertOneAsync(user, cancellationToken);
+				await DatabaseContext.Users.InsertOneAsync(user, cancellationToken);
 			}
 			catch (MongoWriteException)
 			{
@@ -250,7 +172,7 @@ namespace AspNet.Identity3.MongoDB
 
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, user.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true };
-			await _collection.ReplaceOneAsync(filter, user, updateOptions, cancellationToken);
+			await DatabaseContext.Users.ReplaceOneAsync(filter, user, updateOptions, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -267,7 +189,7 @@ namespace AspNet.Identity3.MongoDB
 			if (user == null) throw new ArgumentNullException(nameof(user));
 
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, user.Id);
-			await _collection.DeleteOneAsync(filter, cancellationToken);
+			await DatabaseContext.Users.DeleteOneAsync(filter, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -289,7 +211,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, id);
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return _collection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.Users.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -309,7 +231,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, normalizedUserName);
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return _collection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.Users.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		#endregion
@@ -460,7 +382,7 @@ namespace AspNet.Identity3.MongoDB
 		#region IUserClaimStore<TUser>
 
 		/// <summary>
-		/// Gets a list of all <see cref="Claim"/>s to be belonging to the specified <paramref name="user"/> as an asynchronous operation.
+		/// Gets a list of all (ie both User.Claims and User.Roles.Claims) <see cref="Claim"/>s to be belonging to the specified <paramref name="user"/> as an asynchronous operation.
 		/// </summary>
 		/// <param name="user">The role whose claims to retrieve.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
@@ -591,7 +513,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.ElemMatch(x => x.Claims, claimFilter) ;
 
-			return await _collection.Find(filter).ToListAsync(cancellationToken);
+			return await DatabaseContext.Users.Find(filter).ToListAsync(cancellationToken);
 		}
 
 		#endregion
@@ -948,7 +870,7 @@ namespace AspNet.Identity3.MongoDB
 				//		Temporary list solution from http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc
 				ThrowIfDisposed();
 				var filter = Builders<TUser>.Filter.Ne(x => x.Id, default(TKey));
-				var list = _collection.Find(filter).ToListAsync().Result;
+				var list = DatabaseContext.Users.Find(filter).ToListAsync().Result;
 
 				return list.AsQueryable();
 			}
@@ -997,7 +919,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.Ne(x => x.Id, user.Id) & fBuilder.Eq(x => x.UserName, user.UserName);
 
-			var result = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+			var result = await DatabaseContext.Users.Find(filter).FirstOrDefaultAsync(cancellationToken);
 			return result != null;
 		}
 
@@ -1030,7 +952,7 @@ namespace AspNet.Identity3.MongoDB
 		protected virtual Task<UpdateResult> DoUserDetailsUpdate(TKey userId, UpdateDefinition<TUser> update, UpdateOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
-			return _collection.UpdateOneAsync(filter, update, options, cancellationToken);
+			return DatabaseContext.Users.UpdateOneAsync(filter, update, options, cancellationToken);
 		}
 
 		protected virtual void EnsureClaimsNotNull(TUser user)

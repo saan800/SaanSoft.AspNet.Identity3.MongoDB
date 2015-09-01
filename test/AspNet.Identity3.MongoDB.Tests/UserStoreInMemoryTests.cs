@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using MongoDB.Driver;
+using Microsoft.AspNet.Identity;
 using Xunit;
 
 namespace AspNet.Identity3.MongoDB.Tests
@@ -14,7 +14,9 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 		public UserStoreInMemoryTests()
 		{
-			_userStore = new UserStore<IdentityUser, IdentityRole>("mongodb://localhost:27017");
+			var databaseContext = new IdentityDatabaseContext();
+			// "mongodb://localhost:27017"
+			_userStore = new UserStore<IdentityUser, IdentityRole>(databaseContext);
 		}
 
 		public class Misc : UserStoreInMemoryTests
@@ -22,13 +24,8 @@ namespace AspNet.Identity3.MongoDB.Tests
 			[Fact]
 			public void Constructors_throw_ArgumentNullException_with_null()
 			{
-				Assert.Throws<ArgumentNullException>("connectionString", () => new UserStore<IdentityUser, IdentityRole>((string)null));
-				Assert.Throws<ArgumentNullException>("connectionString", () => new UserStore<IdentityUser, IdentityRole>(""));
-				Assert.Throws<ArgumentNullException>("connectionString", () => new UserStore<IdentityUser, IdentityRole>(String.Empty));
-
-				Assert.Throws<ArgumentNullException>("client", () => new UserStore<IdentityUser, IdentityRole>((IMongoClient)null));
-				Assert.Throws<ArgumentNullException>("database", () => new UserStore<IdentityUser, IdentityRole>((IMongoDatabase)null));
-				Assert.Throws<ArgumentNullException>("collection", () => new UserStore<IdentityUser, IdentityRole>((IMongoCollection<IdentityUser>)null));
+				Assert.Throws<ArgumentNullException>("databaseContext", () => new UserStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null));
+				Assert.Throws<ArgumentNullException>("databaseContext", () => new UserStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null, new IdentityErrorDescriber()));
 			}
 
 			[Fact]

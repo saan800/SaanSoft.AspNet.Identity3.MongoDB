@@ -15,7 +15,8 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 		private readonly DatabaseFixture _databaseFixture;
 		private readonly IMongoCollection<IdentityUser> _userCollection;
-		private readonly string _collectionPrefix;
+		private readonly IMongoCollection<IdentityRole> _roleCollection;
+		private readonly IdentityDatabaseContext _databaseContext;
 
 		private readonly UserStore<IdentityUser, IdentityRole> _userStore;
 		private readonly IdentityErrorDescriber _errorDescriber;
@@ -38,10 +39,11 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 			_databaseFixture = new DatabaseFixture(collectionPrefix);
 			_userCollection = _databaseFixture.GetCollection<IdentityUser>();
-			_collectionPrefix = collectionPrefix;
+			_roleCollection = _databaseFixture.GetCollection<IdentityRole>();
+			_databaseContext = new IdentityDatabaseContext { Users = _userCollection, Roles = _roleCollection };
 
 			_errorDescriber = new IdentityErrorDescriber();
-			_userStore = new UserStore<IdentityUser, IdentityRole>(_userCollection, _errorDescriber);
+			_userStore = new UserStore<IdentityUser, IdentityRole>(_databaseContext, _errorDescriber);
 
 
 			_claim1 = new Claim("ClaimType1", "some value");
@@ -63,109 +65,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 		}
 
 		#endregion
-
-		public class Constructors : UserStoreTests
-		{
-			public Constructors() : base(typeof(Constructors).Name) { }
-
-			[Fact]
-			public void Can_inisialise_from_connectionString()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var UserStore = new UserStoreHelper(_databaseFixture.ConnectionString, _databaseFixture.DatabaseName, collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.DatabaseName);
-				Assert.Equal(collectionName, UserStore.CollectionName);
-
-				Assert.NotNull(UserStore.MongoClient);
-				Assert.NotNull(UserStore.MongoDatabase);
-				Assert.NotNull(UserStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, UserStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_connectionString_with_default_db_and_collection_names()
-			{
-				// arrange
-				var UserStore = new UserStoreHelper(_databaseFixture.ConnectionString);
-
-				// assert
-				string defaultDatabaseName = "AspNetIdentity";
-				string defaultCollectionName = "AspNetUsers";
-				Assert.Equal(defaultDatabaseName, UserStore.DatabaseName);
-				Assert.Equal(defaultCollectionName, UserStore.CollectionName);
-
-				Assert.Equal(defaultDatabaseName, UserStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(defaultDatabaseName, UserStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(defaultCollectionName, UserStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoClient()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var UserStore = new UserStoreHelper(_databaseFixture.GetMongoClient(), _databaseFixture.DatabaseName, collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.DatabaseName);
-				Assert.Equal(collectionName, UserStore.CollectionName);
-
-				Assert.NotNull(UserStore.MongoClient);
-				Assert.NotNull(UserStore.MongoDatabase);
-				Assert.NotNull(UserStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, UserStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoDatabase()
-			{
-				// arrange
-				string collectionName = "TestColName";
-				var UserStore = new UserStoreHelper(_databaseFixture.GetMongoDatabase(), collectionName);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.DatabaseName);
-				Assert.Equal(collectionName, UserStore.CollectionName);
-
-				Assert.NotNull(UserStore.MongoClient);
-				Assert.NotNull(UserStore.MongoDatabase);
-				Assert.NotNull(UserStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, UserStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-			[Fact]
-			public void Can_inisialise_from_MongoCollection()
-			{
-				// arrange
-				string collectionName = _userCollection.CollectionNamespace.CollectionName;
-				var UserStore = new UserStoreHelper(_userCollection);
-
-				// assert
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.DatabaseName);
-				Assert.Equal(collectionName, UserStore.CollectionName);
-
-				Assert.NotNull(UserStore.MongoClient);
-				Assert.NotNull(UserStore.MongoDatabase);
-				Assert.NotNull(UserStore.MongoCollection);
-
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoDatabase.DatabaseNamespace.DatabaseName);
-				Assert.Equal(_databaseFixture.DatabaseName, UserStore.MongoCollection.CollectionNamespace.DatabaseNamespace.DatabaseName);
-				Assert.Equal(collectionName, UserStore.MongoCollection.CollectionNamespace.CollectionName);
-			}
-
-		}
+		
 
 		public class IUserStoreTests : UserStoreTests
 		{
@@ -879,31 +779,5 @@ namespace AspNet.Identity3.MongoDB.Tests
 				}
 			}
 		}
-
-
-		#region PROTECTED HELPER CLASS
-
-		class UserStoreHelper : UserStore<IdentityUser, IdentityRole>
-		{
-			public UserStoreHelper(string connectionString, string databaseName = null, string collectionName = null) : base(connectionString, databaseName, collectionName) { }
-
-			public UserStoreHelper(IMongoClient client, string databaseName = null, string collectionName = null) : base(client, databaseName, collectionName) { }
-
-			public UserStoreHelper(IMongoDatabase database, string collectionName = null) : base(database, collectionName) { }
-
-			public UserStoreHelper(IMongoCollection<IdentityUser> collection) : base(collection) { }
-
-			#region helper methods to get protected fields
-
-			public string DatabaseName => base._databaseName;
-			public string CollectionName => base._collectionName;
-			public IMongoClient MongoClient => base._client;
-			public IMongoDatabase MongoDatabase => base._database;
-			public IMongoCollection<IdentityUser> MongoCollection => base._collection;
-
-			#endregion
-		}
-
-		#endregion
 	}
 }
