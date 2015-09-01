@@ -528,7 +528,22 @@ namespace AspNet.Identity3.MongoDB
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
 			if (newClaim == null) throw new ArgumentNullException(nameof(newClaim));
 			
-			throw new NotImplementedException();
+			if (user.Claims == null) user.Claims = new List<IdentityClaim>();
+
+
+			var matchedClaims = user.Claims.Where(uc=> uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type);
+			if (matchedClaims.Any())
+			{
+				foreach (var matchedClaim in matchedClaims)
+				{
+					matchedClaim.ClaimValue = newClaim.Value;
+					matchedClaim.ClaimType = newClaim.Type;
+				}
+
+
+				var update = Builders<TUser>.Update.Set(x => x.Claims, user.Claims);
+				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+			}
 		}
 
 		/// <summary>

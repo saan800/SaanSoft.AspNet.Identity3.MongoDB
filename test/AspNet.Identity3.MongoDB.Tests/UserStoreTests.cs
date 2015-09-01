@@ -34,6 +34,8 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 		public UserStoreTests(string collectionPrefix)
 		{
+			collectionPrefix = $"{typeof(UserStoreTests).Name}_{collectionPrefix}";
+
 			_databaseFixture = new DatabaseFixture(collectionPrefix);
 			_userCollection = _databaseFixture.GetCollection<IdentityUser>();
 			_collectionPrefix = collectionPrefix;
@@ -446,7 +448,9 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 			public class AddClaimsAsyncMethod : IUserClaimStoreTests
 			{
-				public AddClaimsAsyncMethod() : base(typeof(AddClaimsAsyncMethod).Name) { }
+				public AddClaimsAsyncMethod() : base(typeof (AddClaimsAsyncMethod).Name)
+				{
+				}
 
 				[Fact]
 				public async Task Adding_null_claims_to_user_does_not_update_database_user_record()
@@ -470,7 +474,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 					Assert.NotNull(userFromDb.Claims);
 					Assert.Empty(userFromDb.Claims);
 				}
-				
+
 				[Fact]
 				public async Task Adding_empty_claims_to_user_does_not_update_database_user_record()
 				{
@@ -503,16 +507,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1, _claim2 });
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1, _claim2});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -526,16 +530,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1, _claim2 });
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1, _claim2});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -548,16 +552,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1 });
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -570,16 +574,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1, _claim2 });
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1, _claim2});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim2 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim2}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -590,22 +594,22 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1 });
-					await _userStore.AddClaimsAsync(user, new List<Claim> { _claim1SameType });
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1});
+					await _userStore.AddClaimsAsync(user, new List<Claim> {_claim1SameType});
 
 					// assert
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim1SameType }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim1SameType}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1, _identityClaim1SameType }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1, _identityClaim1SameType}, userFromDb.Claims);
 				}
 			}
 
 			public class RemoveClaimsAsyncMethod : IUserClaimStoreTests
 			{
-				public RemoveClaimsAsyncMethod() : base(typeof(RemoveClaimsAsyncMethod).Name)
+				public RemoveClaimsAsyncMethod() : base(typeof (RemoveClaimsAsyncMethod).Name)
 				{
 				}
 
@@ -619,16 +623,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.RemoveClaimsAsync(user, new List<Claim> { _claim3 });
+					await _userStore.RemoveClaimsAsync(user, new List<Claim> {_claim3});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -641,7 +645,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.RemoveClaimsAsync(user, new List<Claim> { _claim3 });
+					await _userStore.RemoveClaimsAsync(user, new List<Claim> {_claim3});
 
 					// assert
 
@@ -664,16 +668,16 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.RemoveClaimsAsync(user, new List<Claim> { _claim1, _claim3 });
+					await _userStore.RemoveClaimsAsync(user, new List<Claim> {_claim1, _claim3});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim2 }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim2}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim2 }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim2}, userFromDb.Claims);
 				}
 
 				[Fact]
@@ -687,18 +691,73 @@ namespace AspNet.Identity3.MongoDB.Tests
 					await _userStore.CreateAsync(user);
 
 					// act
-					await _userStore.RemoveClaimsAsync(user, new List<Claim> { _claim1 });
+					await _userStore.RemoveClaimsAsync(user, new List<Claim> {_claim1});
 
 					// assert
 
 					// check user claims from memory
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1SameType }, user.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1SameType}, user.Claims);
 
 					// check user claims from DB
 					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
-					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1SameType }, userFromDb.Claims);
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim1SameType}, userFromDb.Claims);
 				}
 			}
+
+			public class ReplaceClaimesAsyncMethodd : IUserClaimStoreTests
+			{
+				public ReplaceClaimesAsyncMethodd() : base(typeof (ReplaceClaimesAsyncMethodd).Name)
+				{
+				}
+
+				[Fact]
+				public async Task No_matching_claims_does_not_update_database()
+				{
+					// arrange
+					var user = new IdentityUser("No_matching_claims_does_not_update_database");
+					user.Claims.Add(_identityClaim1);
+
+					await _userStore.CreateAsync(user);
+
+					// act
+					await _userStore.ReplaceClaimAsync(user, _claim1, _claim2);
+
+					// assert
+
+					// check user claims from memory
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim3, _identityClaim2}, user.Claims);
+
+					// check user claims from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					IdentityClaimAssert.Equal(new List<IdentityClaim> {_identityClaim3, _identityClaim2}, userFromDb.Claims);
+				}
+
+
+
+				[Fact]
+				public async Task Matching_claims_are_replaced_and_updated_database()
+				{
+					// arrange
+					var user = new IdentityUser("Matching_claims_are_replaced_and_updated_database");
+					user.Claims.Add(_identityClaim1);
+					user.Claims.Add(_identityClaim2);
+
+					await _userStore.CreateAsync(user);
+
+					// act
+					await _userStore.ReplaceClaimAsync(user, _claim1, _claim3);
+
+					// assert
+
+					// check user claims from memory
+					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1 }, user.Claims);
+
+					// check user claims from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					IdentityClaimAssert.Equal(new List<IdentityClaim> { _identityClaim1 }, userFromDb.Claims);
+				}
+			}
+
 		}
 
 

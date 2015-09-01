@@ -19,7 +19,9 @@ namespace AspNet.Identity3.MongoDB.Tests
 		private readonly IdentityErrorDescriber _errorDescriber;
 
 		public RoleStoreTests(string collectionPrefix)
-		{ 
+		{
+			collectionPrefix = $"{typeof(RoleStoreTests).Name}_{collectionPrefix}";
+
 			_databaseFixture = new DatabaseFixture(collectionPrefix);
 			_roleCollection = _databaseFixture.GetCollection<IdentityRole>();
 			_collectionPrefix = collectionPrefix;
