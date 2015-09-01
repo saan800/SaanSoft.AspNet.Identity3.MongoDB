@@ -17,15 +17,22 @@ The default Mongo details are:
 * Mongo Collection Settings: WriteConcern.WMajority
 
 
+## Frameworks
+Currently only available for dnx451
+
+Keeping an eye on these issues for mongoDB to be available in dnxcore50
+- <https://jira.mongodb.org/browse/CSHARP-1177>
+- <https://github.com/mongodb/mongo-csharp-driver/pull/210>
+
+
 # WARNING
 RoleStore.Roles and UserStore.Users are functions to return a IQueryable of roles/users.
 However MongoDb have not yet implemented any AsQueryable functionality in MongoDB.Driver yet.
 - <https://jira.mongodb.org/browse/CSHARP-935>
 - <http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc>
 
-At the moment I have implemented the IQueryable from a ToList() the role/user collections.
-**This will not perform well.**
+At the moment I have implemented the IQueryable from a ToList() the entire role/user collections. **This will not perform well.**
 
-I highly recommend you don't use Queryable functions unless you are very, very sure it will always be a small collection.
+I highly recommend you don't use the two Queryable functions unless you are very, very sure it will always be a small collection.
 
-I'm keeping an eye on <https://jira.mongodb.org/browse/CSHARP-935> and will update the implementation when possible.
+I'm keeping an eye on <https://jira.mongodb.org/browse/CSHARP-935> and will update the implementation when possible and remove this warning.
