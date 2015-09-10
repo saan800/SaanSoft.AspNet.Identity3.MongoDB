@@ -247,11 +247,13 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual async Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			if (login == null) throw new ArgumentNullException(nameof(login));
-
-			if (user.Logins == null) user.Logins = new List<IdentityUserLogin>();
+			EnsureLoginsNotNull(user);
+			
 
 			var iul = new IdentityUserLogin
 			{
@@ -259,8 +261,18 @@ namespace AspNet.Identity3.MongoDB
 				LoginProvider = login.LoginProvider,
 				ProviderDisplayName = login.ProviderDisplayName
 			};
-			user.Logins.Add(iul);
 
+			// check if login already exists and remove old details
+			var existingLogin = user.Logins.SingleOrDefault(l => l.Equals(iul));
+			if (existingLogin != null)
+			{
+				user.Logins.Remove(existingLogin);
+
+				var updateRemove = Builders<TUser>.Update.Pull(x => x.Logins, existingLogin);
+				await DoUserDetailsUpdate(user.Id, updateRemove, null, cancellationToken);
+			}
+
+			user.Logins.Add(iul);
 			// update in database
 			var update = Builders<TUser>.Update.Push(x => x.Logins, iul);
 			await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
@@ -278,9 +290,22 @@ namespace AspNet.Identity3.MongoDB
 		/// The <see cref="Task"/> that contains a flag the result of the asynchronous removing operation. The flag will be true if
 		/// the login information was existed and removed, otherwise false.
 		/// </returns>
-		public virtual Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			
+			var iul = user.Logins.SingleOrDefault(l => l.Equals(new IdentityUserLogin { LoginProvider = loginProvider, ProviderKey = providerKey }));
+			if (iul != null)
+			{
+				user.Logins.Remove(iul);
+
+				// update in database
+				var update = Builders<TUser>.Update.Pull(x => x.Logins, iul);
+				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+			}
 		}
 
 		/// <summary>
@@ -293,7 +318,13 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+
+			IList<UserLoginInfo> logins = user.Logins.Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)).ToList();
+			return Task.FromResult(logins);
 		}
 
 		/// <summary>
@@ -305,9 +336,19 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>
 		/// The <see cref="Task"/> for the asynchronous operation, containing the user, if any which matched the specified login provider and key.
 		/// </returns>
-		public virtual Task<TUser> FindByLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task<TUser> FindByLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			var loginBuilder = Builders<IdentityUserLogin>.Filter;
+			var loginFilter = loginBuilder.Eq(x => x.LoginProvider, loginProvider) & loginBuilder.Eq(x => x.ProviderKey, providerKey);
+
+			var fBuilder = Builders<TUser>.Filter;
+			var filter = fBuilder.ElemMatch(x => x.Logins, loginFilter);
+
+			return await DatabaseContext.Users.Find(filter).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		#endregion
@@ -321,9 +362,34 @@ namespace AspNet.Identity3.MongoDB
 		/// <param name="roleName">The name of the role to add the user to.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-		public virtual Task AddToRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task AddToRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			EnsureRolesNotNull(user);
+
+			// get role details
+			// TODO: case insensitive
+			var roleFilter = Builders<TRole>.Filter.Eq(x => x.Name, roleName);
+			var role = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
+
+			if (role == null)
+			{
+				throw new InvalidOperationException($"Role {roleName} does not exist.");
+			}
+
+			// check if role already exists for user, no need to do anything else if its already on the user
+			if (user.Roles.Any(r => ConvertIdToString(r.Id) == ConvertIdToString(role.Id))) return;
+
+
+			user.Roles.Add(role);
+
+			// update in database
+			var update = Builders<TUser>.Update.Push(x => x.Roles, role);
+			await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 		}
 
 		/// <summary>
@@ -333,9 +399,38 @@ namespace AspNet.Identity3.MongoDB
 		/// <param name="roleName">The name of the role to remove.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-		public virtual Task RemoveFromRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task RemoveFromRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			EnsureRolesNotNull(user);
+
+			// get role details
+			var existingRole = user.Roles.SingleOrDefault(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
+			if (existingRole != null)
+			{
+				user.Roles.Remove(existingRole);
+				
+				// update in database
+				var update = Builders<TUser>.Update.Pull(x => x.Roles, existingRole);
+				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+			}
+
+
+			// TODO: case insensitive match
+			var roleFilter = Builders<TRole>.Filter.Eq(x => x.Name, roleName);
+			var roleFromDb = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
+			if (roleFromDb != null)
+			{
+				user.Roles.Remove(roleFromDb);
+
+				// update in database
+				var update = Builders<TUser>.Update.Pull(x => x.Roles, roleFromDb);
+				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+			}
 		}
 
 		/// <summary>
@@ -346,7 +441,14 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing a list of role names.</returns>
 		public virtual Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			EnsureRolesNotNull(user);
+
+			IList<string> roleNames = user.Roles.Select(r => r.Name).ToList();
+			return Task.FromResult(roleNames);
 		}
 
 		/// <summary>
@@ -361,7 +463,14 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> IsInRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			EnsureRolesNotNull(user);
+
+			return Task.FromResult(user.Roles.Any(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase)));
 		}
 
 		/// <summary>
@@ -372,9 +481,20 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>
 		/// The <see cref="Task"/> that represents the asynchronous operation, containing a list of users who are in the named role.
 		/// </returns>
-		public virtual Task<IList<TUser>> GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task<IList<TUser>> GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			
+			// TODO: make case insensitive
+			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.Name, roleName);
+
+			var fBuilder = Builders<TUser>.Filter;
+			var filter = fBuilder.ElemMatch(x => x.Roles, roleFilter);
+
+			return await DatabaseContext.Users.Find(filter).ToListAsync(cancellationToken);
 		}
 
 		#endregion
@@ -529,7 +649,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetPasswordHashAsync(TUser user, string passwordHash, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.PasswordHash = passwordHash;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -540,7 +665,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, returning the password hash for the specified <paramref name="user"/>.</returns>
 		public virtual Task<string> GetPasswordHashAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+
+			return Task.FromResult(user.PasswordHash);
 		}
 
 		/// <summary>
@@ -554,7 +684,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> HasPasswordAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(!string.IsNullOrWhiteSpace(user.PasswordHash));
 		}
 
 		#endregion
@@ -570,7 +704,13 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetSecurityStampAsync(TUser user, string stamp, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+
+			user.SecurityStamp = stamp;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -581,7 +721,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the security stamp for the specified <paramref name="user"/>.</returns>
 		public virtual Task<string> GetSecurityStampAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.SecurityStamp);
 		}
 
 		#endregion
@@ -597,7 +741,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The task object representing the asynchronous operation.</returns>
 		public virtual Task SetEmailAsync(TUser user, string email, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.Email = email;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -608,7 +757,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The task object containing the results of the asynchronous operation, the email address for the specified <paramref name="user"/>.</returns>
 		public virtual Task<string> GetEmailAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.Email);
 		}
 
 		/// <summary>
@@ -623,7 +776,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> GetEmailConfirmedAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.EmailConfirmed);
 		}
 
 		/// <summary>
@@ -635,7 +792,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The task object representing the asynchronous operation.</returns>
 		public virtual Task SetEmailConfirmedAsync(TUser user, bool confirmed, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.EmailConfirmed = confirmed;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -646,9 +808,15 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>
 		/// The task object containing the results of the asynchronous lookup operation, the user if any associated with the specified normalized email address.
 		/// </returns>
-		public virtual Task<TUser> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task<TUser> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, normalizedEmail);
+
+			return await DatabaseContext.Users.Find(filter).FirstOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -661,7 +829,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<string> GetNormalizedEmailAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.NormalizedEmail);
 		}
 
 		/// <summary>
@@ -673,7 +845,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The task object representing the asynchronous operation.</returns>
 		public virtual Task SetNormalizedEmailAsync(TUser user, string normalizedEmail, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.NormalizedEmail = normalizedEmail;
+			return Task.FromResult(0);
 		}
 
 		#endregion
@@ -692,7 +869,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<DateTimeOffset?> GetLockoutEndDateAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.LockoutEnd);
 		}
 
 		/// <summary>
@@ -704,7 +885,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetLockoutEndDateAsync(TUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.LockoutEnd = lockoutEnd;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -715,7 +901,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the incremented failed access count.</returns>
 		public virtual Task<int> IncrementAccessFailedCountAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.AccessFailedCount++;
+			return Task.FromResult(user.AccessFailedCount);
 		}
 
 		/// <summary>
@@ -727,7 +918,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <remarks>This is typically called after the account is successfully accessed.</remarks>
 		public virtual Task ResetAccessFailedCountAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.AccessFailedCount = 0;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -738,7 +934,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the failed access count.</returns>
 		public virtual Task<int> GetAccessFailedCountAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.AccessFailedCount);
 		}
 
 		/// <summary>
@@ -751,7 +951,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> GetLockoutEnabledAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.LockoutEnabled);
 		}
 
 		/// <summary>
@@ -763,7 +967,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetLockoutEnabledAsync(TUser user, bool enabled, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.LockoutEnabled = enabled;
+			return Task.FromResult(0);
 		}
 
 		#endregion
@@ -779,7 +988,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetPhoneNumberAsync(TUser user, string phoneNumber, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.PhoneNumber = phoneNumber;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -790,7 +1004,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the user's telephone number, if any.</returns>
 		public virtual Task<string> GetPhoneNumberAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.PhoneNumber);
 		}
 
 		/// <summary>
@@ -804,7 +1022,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> GetPhoneNumberConfirmedAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.PhoneNumberConfirmed);
 		}
 
 		/// <summary>
@@ -816,7 +1038,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetPhoneNumberConfirmedAsync(TUser user, bool confirmed, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.PhoneNumberConfirmed = confirmed;
+			return Task.FromResult(0);
 		}
 
 		#endregion
@@ -833,7 +1060,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual Task SetTwoFactorEnabledAsync(TUser user, bool enabled, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			user.TwoFactorEnabled = enabled;
+			return Task.FromResult(0);
 		}
 
 		/// <summary>
@@ -848,7 +1080,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<bool> GetTwoFactorEnabledAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			throw new NotImplementedException();
+			// TODO: tests
+			cancellationToken.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			if (user == null) throw new ArgumentNullException(nameof(user));
+			return Task.FromResult(user.TwoFactorEnabled);
 		}
 
 		#endregion
@@ -955,6 +1191,11 @@ namespace AspNet.Identity3.MongoDB
 			return DatabaseContext.Users.UpdateOneAsync(filter, update, options, cancellationToken);
 		}
 
+		protected virtual void EnsureLoginsNotNull(TUser user)
+		{
+			if (user.Logins == null) user.Logins = new List<IdentityUserLogin>();
+		}
+
 		protected virtual void EnsureClaimsNotNull(TUser user)
 		{
 			if (user.Claims == null) user.Claims = new List<IdentityClaim>();
@@ -962,7 +1203,7 @@ namespace AspNet.Identity3.MongoDB
 
 		protected virtual void EnsureRolesNotNull(TUser user)
 		{
-			if (user.Roles == null) user.Roles = new List<IdentityRole<TKey>>();
+			if (user.Roles == null) user.Roles = new List<TRole>().Cast<IdentityRole<TKey>>().ToList();
 		}
 
 		#endregion

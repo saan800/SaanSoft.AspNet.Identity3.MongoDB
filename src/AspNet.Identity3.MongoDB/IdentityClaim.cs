@@ -1,10 +1,12 @@
-﻿namespace AspNet.Identity3.MongoDB
+﻿using System;
+
+namespace AspNet.Identity3.MongoDB
 {
 	/// <summary>
 	/// EntityType that represents one specific claim
 	/// </summary>
 	/// <typeparam name="TKey"></typeparam>
-	public class IdentityClaim
+	public class IdentityClaim : IEquatable<IdentityClaim>
 	{
 		/// <summary>
 		/// Claim type
@@ -15,5 +17,46 @@
 		/// Claim value
 		/// </summary>
 		public virtual string ClaimValue { get; set; }
+
+
+
+		#region IEquatable<IdentityClaim> (Equals, GetHashCode(), ==, !=)
+
+		public override bool Equals(object obj)
+		{
+			var thisObj = (IdentityClaim)obj;
+			if (thisObj == null) return false;
+
+			return this.Equals(thisObj);
+		}
+
+		public virtual bool Equals(IdentityClaim obj)
+		{
+			if (obj == null) return false;
+
+			return this.ClaimType.Equals(obj.ClaimType, StringComparison.OrdinalIgnoreCase) &&
+				   this.ClaimValue.Equals(obj.ClaimValue, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public static bool operator ==(IdentityClaim left, IdentityClaim right)
+		{
+			return Equals(left, right);
+		}
+
+		public static bool operator !=(IdentityClaim left, IdentityClaim right)
+		{
+			return !Equals(left, right);
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				return (StringComparer.OrdinalIgnoreCase.GetHashCode(ClaimType) * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(ClaimValue);
+			}
+		}
+
+		#endregion
+
 	}
 }

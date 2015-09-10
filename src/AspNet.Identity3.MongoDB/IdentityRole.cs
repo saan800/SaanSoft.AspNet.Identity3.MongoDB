@@ -73,5 +73,9 @@ namespace AspNet.Identity3.MongoDB
 		{
 			return Name;
 		}
+
+
+
+		// TODO: Equals override?? and test
 	}
 }

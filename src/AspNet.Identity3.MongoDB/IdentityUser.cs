@@ -17,7 +17,21 @@ namespace AspNet.Identity3.MongoDB
 		}
 	}
 
-	public class IdentityUser<TKey> where TKey : IEquatable<TKey>
+	public class IdentityUser<TKey> : IdentityUser<IdentityRole<TKey>, TKey>
+		where TKey : IEquatable<TKey>
+	{
+		public IdentityUser() : base()
+		{
+		}
+
+		public IdentityUser(string userName) : base(userName)
+		{
+		}
+	}
+
+	public class IdentityUser<TRole, TKey> 
+		where TRole : IdentityRole<TKey>
+		where TKey : IEquatable<TKey>
 	{
 		public IdentityUser() { }
 
@@ -84,12 +98,12 @@ namespace AspNet.Identity3.MongoDB
 		/// <summary>
 		/// Navigation property for users in the role
 		/// </summary>
-		public virtual IList<IdentityRole<TKey>> Roles
+		public virtual IList<TRole> Roles
 		{
 			get { return _roles; }
-			set { _roles = value ?? new List<IdentityRole<TKey>>(); }
+			set { _roles = value ?? new List<TRole>(); }
 		} 
-		private IList<IdentityRole<TKey>> _roles = new List<IdentityRole<TKey>>();
+		private IList<TRole> _roles = new List<TRole>();
 
 		/// <summary>
 		/// Navigation property for users claims
@@ -111,7 +125,7 @@ namespace AspNet.Identity3.MongoDB
 				// as Claims and Roles are virtual and could be overridden with an implementation that allows nulls
 				//	- make sure they aren't null just in case
 				var clms = Claims ?? new List<IdentityClaim>();
-				var rls = Roles ??  new List<IdentityRole<TKey>>();
+				var rls = Roles ??  new List<TRole>();
 
 				return clms.Concat(rls.Where(r => r.Claims != null).SelectMany(r => r.Claims)).Distinct().ToList();
 			}
@@ -135,5 +149,7 @@ namespace AspNet.Identity3.MongoDB
 		{
 			return UserName;
 		}
+
+		// TODO: Equals override?? and test it
 	}
 }

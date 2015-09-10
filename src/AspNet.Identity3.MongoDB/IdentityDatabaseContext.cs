@@ -10,8 +10,8 @@ namespace AspNet.Identity3.MongoDB
 	}
 
 	public class IdentityDatabaseContext<TUser, TRole, TKey>
-		where TUser : IdentityUser<TKey>
 		where TRole : IdentityRole<TKey>
+		where TUser : IdentityUser<TKey>
 		where TKey : IEquatable<TKey>
 	{
 			

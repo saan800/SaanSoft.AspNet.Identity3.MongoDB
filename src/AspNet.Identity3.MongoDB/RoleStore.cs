@@ -87,6 +87,8 @@ namespace AspNet.Identity3.MongoDB
 			var updateOptions = new UpdateOptions { IsUpsert = true};
 			await DatabaseContext.Roles.ReplaceOneAsync(filter, role, updateOptions, cancellationToken);
 
+			// TODO: update users with this role
+
 			return IdentityResult.Success;
 		}
 
@@ -103,6 +105,8 @@ namespace AspNet.Identity3.MongoDB
 
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
 			await DatabaseContext.Roles.DeleteOneAsync(filter, cancellationToken);
+
+			// TODO: update users with this role
 
 			return IdentityResult.Success;
 		}
@@ -266,6 +270,8 @@ namespace AspNet.Identity3.MongoDB
 			var c = new IdentityClaim {ClaimType = claim.Type, ClaimValue = claim.Value};
 			role.Claims.Add(c);
 
+			// TODO: update users with this role
+
 			// update role claims in the database
 			var update = Builders<TRole>.Update.Push(x => x.Claims, c);
 			await DoRoleDetailsUpdate(role.Id, update, null, cancellationToken);
@@ -298,8 +304,10 @@ namespace AspNet.Identity3.MongoDB
 				var update = Builders<TRole>.Update.Pull(x => x.Claims, c);
 				await DoRoleDetailsUpdate(role.Id, update, null, cancellationToken);
 			}
+
+			// TODO: update users with this role
 		}
-		
+
 		#endregion
 
 		#region IQueryableRoleStore<TRole>
