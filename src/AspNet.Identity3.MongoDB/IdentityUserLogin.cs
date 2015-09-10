@@ -3,9 +3,8 @@
 namespace AspNet.Identity3.MongoDB
 {
 	/// <summary>
-	/// Entity type for a user's login (i.e. facebook, google)
+	/// Entity type for a user's login (i.e. facebook, google, email/password)
 	/// </summary>
-	/// <typeparam name="TKey"></typeparam>
 	public class IdentityUserLogin : IEquatable<IdentityUserLogin>
 	{
 		/// <summary>
@@ -23,15 +22,14 @@ namespace AspNet.Identity3.MongoDB
 		/// </summary>
 		public virtual string ProviderDisplayName { get; set; }
 
-
-
+		
 		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
-
+		
 		public override bool Equals(object obj)
 		{
-			var thisObj = (IdentityUserLogin)obj;
-			if (thisObj == null) return false;
+			if (!(obj is IdentityUserLogin)) return false;
 
+			var thisObj = (IdentityUserLogin)obj;
 			return this.Equals(thisObj);
 		}
 

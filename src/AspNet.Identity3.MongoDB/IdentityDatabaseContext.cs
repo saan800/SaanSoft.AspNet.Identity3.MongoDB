@@ -111,7 +111,7 @@ namespace AspNet.Identity3.MongoDB
 		public virtual void CreateModel()
 		{
 			// TODO: change so create collections and indexes on appropriate fields 
-			// Users: normalizedUserName, FindByLoginAsync(loginProvider, providerKey), normalizedEmail, GetUsersForClaimAsync(Claim), GetUsersInRoleAsync(roleName)
+			// Users: normalizedUserName, FindByLoginAsync(loginProvider, providerKey), normalizedEmail, GetUsersForClaimAsync(Claim), GetUsersInRoleAsync(roleName), role.Id
 			// Roles: normalisedName
 
 			//if (Users == null)

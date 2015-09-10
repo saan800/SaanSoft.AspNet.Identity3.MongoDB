@@ -5,7 +5,6 @@ namespace AspNet.Identity3.MongoDB
 	/// <summary>
 	/// EntityType that represents one specific claim
 	/// </summary>
-	/// <typeparam name="TKey"></typeparam>
 	public class IdentityClaim : IEquatable<IdentityClaim>
 	{
 		/// <summary>
@@ -17,16 +16,15 @@ namespace AspNet.Identity3.MongoDB
 		/// Claim value
 		/// </summary>
 		public virtual string ClaimValue { get; set; }
-
-
+		
 
 		#region IEquatable<IdentityClaim> (Equals, GetHashCode(), ==, !=)
-
+		
 		public override bool Equals(object obj)
 		{
-			var thisObj = (IdentityClaim)obj;
-			if (thisObj == null) return false;
+			if (!(obj is IdentityClaim)) return false;
 
+			var thisObj = (IdentityClaim)obj;
 			return this.Equals(thisObj);
 		}
 
@@ -57,6 +55,5 @@ namespace AspNet.Identity3.MongoDB
 		}
 
 		#endregion
-
 	}
 }

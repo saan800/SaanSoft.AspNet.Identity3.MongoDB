@@ -75,7 +75,42 @@ namespace AspNet.Identity3.MongoDB
 		}
 
 
+		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
 
-		// TODO: Equals override?? and test
+		public override bool Equals(object obj)
+		{
+			if (!(obj is IdentityRole<TKey>)) return false;
+
+			var thisObj = (IdentityRole<TKey>)obj;
+			return this.Equals(thisObj);
+		}
+
+		public virtual bool Equals(IdentityRole<TKey> obj)
+		{
+			if (obj == null) return false;
+
+			return this.Id.Equals(obj.Id);
+		}
+
+		public static bool operator ==(IdentityRole<TKey> left, IdentityRole<TKey> right)
+		{
+			return Equals(left, right);
+		}
+
+		public static bool operator !=(IdentityRole<TKey> left, IdentityRole<TKey> right)
+		{
+			return !Equals(left, right);
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				
+				return StringComparer.OrdinalIgnoreCase.GetHashCode(this.Id);
+			}
+		}
+
+		#endregion
 	}
 }

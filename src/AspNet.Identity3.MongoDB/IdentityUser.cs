@@ -150,6 +150,43 @@ namespace AspNet.Identity3.MongoDB
 			return UserName;
 		}
 
-		// TODO: Equals override?? and test it
+
+		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
+
+		public override bool Equals(object obj)
+		{
+			if (!(obj is IdentityUser<TRole, TKey>)) return false;
+
+			var thisObj = (IdentityUser<TRole, TKey>)obj;
+			return this.Equals(thisObj);
+		}
+
+		public virtual bool Equals(IdentityUser<TRole, TKey> obj)
+		{
+			if (obj == null) return false;
+
+			return this.Id.Equals(obj.Id);
+		}
+
+		public static bool operator ==(IdentityUser<TRole, TKey> left, IdentityUser<TRole, TKey> right)
+		{
+			return Equals(left, right);
+		}
+
+		public static bool operator !=(IdentityUser<TRole, TKey> left, IdentityUser<TRole, TKey> right)
+		{
+			return !Equals(left, right);
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+
+				return StringComparer.OrdinalIgnoreCase.GetHashCode(this.Id);
+			}
+		}
+
+		#endregion
 	}
 }

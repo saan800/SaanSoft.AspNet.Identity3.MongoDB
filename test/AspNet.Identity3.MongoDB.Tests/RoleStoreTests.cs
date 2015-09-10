@@ -16,6 +16,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 		private readonly IMongoCollection<IdentityRole> _roleCollection;
 		private readonly IdentityDatabaseContext _databaseContext;
 
+		private readonly UserStore<IdentityUser, IdentityRole> _userStore;
 		private readonly RoleStore<IdentityUser, IdentityRole> _roleStore;
 		private readonly IdentityErrorDescriber _errorDescriber;
 
@@ -28,6 +29,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			_roleCollection = _databaseFixture.GetCollection<IdentityRole>();
 			_databaseContext = new IdentityDatabaseContext { Users = _userCollection, Roles = _roleCollection };
 
+			_userStore = new UserStore<IdentityUser, IdentityRole>(_databaseContext);
 			_roleStore = new RoleStore<IdentityUser, IdentityRole>(_databaseContext);
 			_errorDescriber = new IdentityErrorDescriber();
 		}
@@ -188,6 +190,58 @@ namespace AspNet.Identity3.MongoDB.Tests
 				var expectedError = IdentityResult.Failed(_errorDescriber.DuplicateRoleName(role2.ToString()));
 				IdentityResultAssert.IsFailure(result3,expectedError.Errors.FirstOrDefault());
 			}
+			
+			[Fact]
+			public async Task When_User_has_Role_and_Role_is_updated_should_update_User_Role_as_well()
+			{
+				// arrange
+				var identityClaim1 = new IdentityClaim { ClaimType = "ClaimType1", ClaimValue = "val" };
+				var identityClaim2 = new IdentityClaim { ClaimType = "ClaimType2", ClaimValue = "some val" };
+				var role1 = new IdentityRole { Name = "Role1", Claims = new List<IdentityClaim> { identityClaim1, identityClaim2 } };
+				var role2 = new IdentityRole { Name = "Role2", Claims = new List<IdentityClaim> { identityClaim1 } };
+
+				await _roleStore.CreateAsync(role1);
+				await _roleStore.CreateAsync(role2);
+
+				var user1 = new IdentityUser { UserName = "User1", Roles = new List<IdentityRole<string>> { role1, role2 } };
+				var user2 = new IdentityUser { UserName = "User2", Roles = new List<IdentityRole<string>> { role1 } };
+				var user3 = new IdentityUser { UserName = "User3", Roles = new List<IdentityRole<string>> { role2 } };
+
+				await _userStore.CreateAsync(user1);
+				await _userStore.CreateAsync(user2);
+				await _userStore.CreateAsync(user3);
+
+				// act
+				role1.Name = "Bob";
+				await _roleStore.UpdateAsync(role1);
+
+				// assert
+				var user1FromDb = await _userCollection.Find(x => x.Id == user1.Id).SingleOrDefaultAsync();
+				var user2FromDb = await _userCollection.Find(x => x.Id == user2.Id).SingleOrDefaultAsync();
+				var user3FromDb = await _userCollection.Find(x => x.Id == user3.Id).SingleOrDefaultAsync();
+
+				// USER 1
+				Assert.Equal(user1.Roles.Count, user1FromDb.Roles.Count);
+				var user1FromDbRole1 = user1FromDb.Roles.Single(x => x.Id == role1.Id);
+				Assert.Equal(role1.Name, user1FromDbRole1.Name);
+				IdentityClaimAssert.Equal(role1.Claims, user1FromDbRole1.Claims);
+
+				var user1FromDbRole2 = user1FromDb.Roles.Single(x => x.Id == role2.Id);
+				IdentityRoleAssert.Equal(role2, (IdentityRole)user1FromDbRole2);
+
+
+				// USER 2
+				Assert.Equal(user2.Roles.Count, user2FromDb.Roles.Count);
+				var user2FromDbRole1 = user2FromDb.Roles.Single();
+				Assert.Equal(role1.Name, user2FromDbRole1.Name);
+				IdentityClaimAssert.Equal(role1.Claims, user2FromDbRole1.Claims);
+
+
+				// USER 3
+				Assert.Equal(user3.Roles.Count, user3FromDb.Roles.Count);
+				var user3FromDbRole2 = user3FromDb.Roles.Single();
+				IdentityRoleAssert.Equal(role2, (IdentityRole)user3FromDbRole2);
+			}
 		}
 
 		public class DeleteAsyncMethod : RoleStoreTests
@@ -230,6 +284,49 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 				var roleFromDb = await _roleCollection.Find(x => x.Id == role.Id).SingleOrDefaultAsync();
 				Assert.Null(roleFromDb);
+			}
+
+			[Fact]
+			public async Task When_User_has_Role_and_Role_is_deleted_should_remove_User_Role_as_well()
+			{
+				// arrange
+				var identityClaim1 = new IdentityClaim { ClaimType = "ClaimType1", ClaimValue = "val" };
+				var role1 = new IdentityRole { Name = "Role1", Claims = new List<IdentityClaim> { identityClaim1 } };
+				var role2 = new IdentityRole { Name = "Role2", Claims = new List<IdentityClaim> { identityClaim1 } };
+
+				await _roleStore.CreateAsync(role1);
+				await _roleStore.CreateAsync(role2);
+
+				var user1 = new IdentityUser { UserName = "User1", Roles = new List<IdentityRole<string>> { role1, role2 } };
+				var user2 = new IdentityUser { UserName = "User2", Roles = new List<IdentityRole<string>> { role1 } };
+				var user3 = new IdentityUser { UserName = "User3", Roles = new List<IdentityRole<string>> { role2 } };
+
+				await _userStore.CreateAsync(user1);
+				await _userStore.CreateAsync(user2);
+				await _userStore.CreateAsync(user3);
+
+				// act
+				await _roleStore.DeleteAsync(role1);
+
+				// assert
+				var user1FromDb = await _userCollection.Find(x => x.Id == user1.Id).SingleOrDefaultAsync();
+				var user2FromDb = await _userCollection.Find(x => x.Id == user2.Id).SingleOrDefaultAsync();
+				var user3FromDb = await _userCollection.Find(x => x.Id == user3.Id).SingleOrDefaultAsync();
+
+				// USER 1
+				Assert.Equal(1, user1FromDb.Roles.Count);
+				var user1FromDbRole2 = user1FromDb.Roles.Single(x => x.Id == role2.Id);
+				IdentityRoleAssert.Equal(role2, (IdentityRole)user1FromDbRole2);
+
+
+				// USER 2
+				Assert.Equal(0, user2FromDb.Roles.Count);
+
+
+				// USER 3
+				Assert.Equal(1, user3FromDb.Roles.Count);
+				var user3FromDbRole2 = user3FromDb.Roles.Single();
+				IdentityRoleAssert.Equal(role2, (IdentityRole)user3FromDbRole2);
 			}
 		}
 
@@ -399,6 +496,57 @@ namespace AspNet.Identity3.MongoDB.Tests
 				var roleFromDb = await _roleCollection.Find(x => x.Id == role.Id).SingleOrDefaultAsync();
 				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim1, identityClaim2 }, roleFromDb.Claims);
 			}
+			
+			[Fact]
+			public async Task When_User_has_Role_and_add_claim_to_Role_should_add_cliam_from_User_Role_as_well()
+			{
+				// arrange
+				var identityClaim1 = new IdentityClaim { ClaimType = "ClaimType1", ClaimValue = "val" };
+				var identityClaim2 = new IdentityClaim { ClaimType = "ClaimType2", ClaimValue = "some val" };
+				var role1 = new IdentityRole { Name = "Role1", Claims = new List<IdentityClaim> { identityClaim1 } };
+				var role2 = new IdentityRole { Name = "Role2", Claims = new List<IdentityClaim> { identityClaim1 } };
+
+				await _roleStore.CreateAsync(role1);
+				await _roleStore.CreateAsync(role2);
+
+				var user1 = new IdentityUser { UserName = "User1", Roles = new List<IdentityRole<string>> { role1, role2 } };
+				var user2 = new IdentityUser { UserName = "User2", Roles = new List<IdentityRole<string>> { role1 } };
+				var user3 = new IdentityUser { UserName = "User3", Roles = new List<IdentityRole<string>> { role2 } };
+
+				await _userStore.CreateAsync(user1);
+				await _userStore.CreateAsync(user2);
+				await _userStore.CreateAsync(user3);
+
+				// act
+				await _roleStore.AddClaimAsync(role1, new Claim(identityClaim2.ClaimType, identityClaim2.ClaimValue));
+
+				// assert
+				var user1FromDb = await _userCollection.Find(x => x.Id == user1.Id).SingleOrDefaultAsync();
+				var user2FromDb = await _userCollection.Find(x => x.Id == user2.Id).SingleOrDefaultAsync();
+				var user3FromDb = await _userCollection.Find(x => x.Id == user3.Id).SingleOrDefaultAsync();
+
+				// USER 1
+				Assert.Equal(user1.Roles.Count, user1FromDb.Roles.Count);
+				var user1FromDbRole1 = user1FromDb.Roles.Single(x => x.Id == role1.Id);
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim1, identityClaim2 }, user1FromDbRole1.Claims);
+
+				// we were specifically removing the identityClaim1 from role1 - so role2 should still have identityClaim1 in role2
+				var user1FromDbRole2 = user1FromDb.Roles.Single(x => x.Id == role2.Id);
+				IdentityClaimAssert.Equal(role2.Claims, user1FromDbRole2.Claims);
+
+
+				// USER 2
+				Assert.Equal(user2.Roles.Count, user2FromDb.Roles.Count);
+				var user2FromDbRole1 = user2FromDb.Roles.Single();
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim1, identityClaim2 }, user2FromDbRole1.Claims);
+
+
+				// USER 3
+				Assert.Equal(user3.Roles.Count, user3FromDb.Roles.Count);
+				// we were specifically removing the identityClaim1 from role1 - so role2 should still have identityClaim1 in role2
+				var user3FromDbRole2 = user3FromDb.Roles.Single();
+				IdentityClaimAssert.Equal(role2.Claims, user3FromDbRole2.Claims);
+			}
 		}
 
 		public class RemoveClaimAsyncMethod : RoleStoreTests
@@ -504,6 +652,57 @@ namespace AspNet.Identity3.MongoDB.Tests
 				// check role claims from DB
 				var roleFromDb = await _roleCollection.Find(x => x.Id == role.Id).SingleOrDefaultAsync();
 				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, roleFromDb.Claims);
+			}
+
+			[Fact]
+			public async Task When_User_has_Role_with_claims_and_claim_removed_from_Role_should_remove_cliam_from_User_Role_as_well()
+			{
+				// arrange
+				var identityClaim1 = new IdentityClaim { ClaimType = "ClaimType1", ClaimValue = "val" };
+				var identityClaim2 = new IdentityClaim { ClaimType = "ClaimType2", ClaimValue = "some val" };
+				var role1 = new IdentityRole { Name = "Role1", Claims = new List<IdentityClaim> { identityClaim1, identityClaim2 } };
+				var role2 = new IdentityRole { Name = "Role2", Claims = new List<IdentityClaim> { identityClaim1 } };
+
+				await _roleStore.CreateAsync(role1);
+				await _roleStore.CreateAsync(role2);
+
+				var user1 = new IdentityUser { UserName = "User1", Roles = new List<IdentityRole<string>> { role1, role2 } };
+				var user2 = new IdentityUser { UserName = "User2", Roles = new List<IdentityRole<string>> { role1 } };
+				var user3 = new IdentityUser { UserName = "User3", Roles = new List<IdentityRole<string>> { role2 } };
+
+				await _userStore.CreateAsync(user1);
+				await _userStore.CreateAsync(user2);
+				await _userStore.CreateAsync(user3);
+
+				// act
+				await _roleStore.RemoveClaimAsync(role1, new Claim(identityClaim1.ClaimType, identityClaim1.ClaimValue));
+
+				// assert
+				var user1FromDb = await _userCollection.Find(x => x.Id == user1.Id).SingleOrDefaultAsync();
+				var user2FromDb = await _userCollection.Find(x => x.Id == user2.Id).SingleOrDefaultAsync();
+				var user3FromDb = await _userCollection.Find(x => x.Id == user3.Id).SingleOrDefaultAsync();
+
+				// USER 1
+				Assert.Equal(user1.Roles.Count, user1FromDb.Roles.Count);
+				var user1FromDbRole1 = user1FromDb.Roles.Single(x => x.Id == role1.Id);
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, user1FromDbRole1.Claims);
+
+				// we were specifically removing the identityClaim1 from role1 - so role2 should still have identityClaim1 in role2
+				var user1FromDbRole2 = user1FromDb.Roles.Single(x => x.Id == role2.Id);
+				IdentityClaimAssert.Equal(role2.Claims, user1FromDbRole2.Claims);
+
+
+				// USER 2
+				Assert.Equal(user2.Roles.Count, user2FromDb.Roles.Count);
+				var user2FromDbRole1 = user2FromDb.Roles.Single();
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, user2FromDbRole1.Claims);
+
+
+				// USER 3
+				Assert.Equal(user3.Roles.Count, user3FromDb.Roles.Count);
+				// we were specifically removing the identityClaim1 from role1 - so role2 should still have identityClaim1 in role2
+				var user3FromDbRole2 = user3FromDb.Roles.Single();
+				IdentityClaimAssert.Equal(role2.Claims, user3FromDbRole2.Claims);
 			}
 		}
 		

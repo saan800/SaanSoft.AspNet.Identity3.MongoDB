@@ -324,7 +324,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 		}
 
-		// TODO:
 		public class IUserLoginStoreTests : UserStoreTests
 		{
 			public IUserLoginStoreTests(string collectionPrefix) : base(collectionPrefix) { }
@@ -334,8 +333,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 				public AddLoginAsyncMethod() : base(typeof(AddLoginAsyncMethod).Name)
 				{
 				}
-
-				// TODO:
 			}
 		}
 

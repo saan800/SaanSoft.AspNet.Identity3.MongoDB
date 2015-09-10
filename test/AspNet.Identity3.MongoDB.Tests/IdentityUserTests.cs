@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System;
+using Xunit;
 
 namespace AspNet.Identity3.MongoDB.Tests
 {
@@ -163,6 +164,80 @@ namespace AspNet.Identity3.MongoDB.Tests
 				Assert.DoesNotContain(Claim3, User.AllClaims);
 
 				Assert.Equal(4, User.AllClaims.Count);
+			}
+		}
+		
+		public class EqualsObjMethod : IdentityUserTests
+		{
+			[Fact]
+			public void When_objects_match_returns_true()
+			{
+				// arrange
+				var obj = (object)new IdentityUser { Id = User.Id };
+
+
+				// assert
+				Assert.True(User.Equals(obj));
+			}
+
+			[Fact]
+			public void When_objects_dont_match_returns_false()
+			{
+				// arrange
+				var obj = (object)new IdentityUser { Id = Guid.NewGuid().ToString() };
+
+
+				// assert
+				Assert.False(User.Equals(obj));
+			}
+
+			[Fact]
+			public void When_object_is_null_returns_false()
+			{
+				// assert
+				Assert.False(User.Equals((object)null));
+			}
+
+			[Fact]
+			public void When_object_is_different_type_returns_false()
+			{
+				// arrange
+				var obj = (object)"hello world";
+
+				// assert
+				Assert.False(User.Equals(obj));
+			}
+		}
+
+		public class EqualsMethod : IdentityUserTests
+		{
+			[Fact]
+			public void When_users_match_returns_true()
+			{
+				// arrange
+				var c = new IdentityUser { Id = User.Id };
+
+
+				// assert
+				Assert.True(User.Equals(c));
+			}
+
+			[Fact]
+			public void When_users_dont_match_returns_false()
+			{
+				// arrange
+				var c = new IdentityUser{ Id = Guid.NewGuid().ToString() };
+
+
+				// assert
+				Assert.False(User.Equals(c));
+			}
+
+			[Fact]
+			public void When_user_is_null_returns_false()
+			{
+				// assert
+				Assert.False(User.Equals((IdentityUser)null));
 			}
 		}
 	}

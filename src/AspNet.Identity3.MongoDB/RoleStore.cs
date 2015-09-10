@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace AspNet.Identity3.MongoDB
@@ -86,8 +88,9 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true};
 			await DatabaseContext.Roles.ReplaceOneAsync(filter, role, updateOptions, cancellationToken);
-
-			// TODO: update users with this role
+			
+			// update users with this role
+			await UpdateRoleOnUsers(role, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -106,7 +109,8 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
 			await DatabaseContext.Roles.DeleteOneAsync(filter, cancellationToken);
 
-			// TODO: update users with this role
+			// update users with this role
+			await RemoveRoleFromUsers(role, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -270,11 +274,12 @@ namespace AspNet.Identity3.MongoDB
 			var c = new IdentityClaim {ClaimType = claim.Type, ClaimValue = claim.Value};
 			role.Claims.Add(c);
 
-			// TODO: update users with this role
-
 			// update role claims in the database
 			var update = Builders<TRole>.Update.Push(x => x.Claims, c);
 			await DoRoleDetailsUpdate(role.Id, update, null, cancellationToken);
+			
+			// update users with this role
+			await UpdateRoleOnUsers(role, cancellationToken);
 		}
 
 		/// <summary>
@@ -298,14 +303,16 @@ namespace AspNet.Identity3.MongoDB
 
 			if (role.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value))
 			{
+				// remove claim from role
 				var c = role.Claims.Single(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value);
 				role.Claims.Remove(c);
 
 				var update = Builders<TRole>.Update.Pull(x => x.Claims, c);
 				await DoRoleDetailsUpdate(role.Id, update, null, cancellationToken);
+				
+				// update users with this role
+				await UpdateRoleOnUsers(role, cancellationToken);
 			}
-
-			// TODO: update users with this role
 		}
 
 		#endregion
@@ -410,6 +417,28 @@ namespace AspNet.Identity3.MongoDB
 		{
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, roleId);
 			return await DatabaseContext.Roles.UpdateOneAsync(filter, update, options, cancellationToken);
+		}
+
+		protected virtual async Task UpdateRoleOnUsers(TRole role, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.Id, role.Id);
+			var userFilter = Builders<TUser>.Filter.ElemMatch(x => x.Roles, roleFilter);
+
+			var update = Builders<TUser>.Update.Set("Roles.$", role);
+			var options = new UpdateOptions { IsUpsert = false };
+
+			await DatabaseContext.Users.UpdateManyAsync(userFilter, update, options, cancellationToken);
+		}
+
+		protected virtual async Task<UpdateResult> RemoveRoleFromUsers(TRole role, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.Id, role.Id);
+			var userFilter = Builders<TUser>.Filter.ElemMatch(x => x.Roles, roleFilter);
+
+			var update = Builders<TUser>.Update.Pull(x => x.Roles, role);
+			var options = new UpdateOptions { IsUpsert = false };
+
+			return await DatabaseContext.Users.UpdateManyAsync(userFilter, update, options, cancellationToken);
 		}
 
 		#endregion

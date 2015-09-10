@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System;
+using Xunit;
 
 namespace AspNet.Identity3.MongoDB.Tests
 {
@@ -16,7 +17,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 		public IdentityRoleTests()
 		{
-			Role = new IdentityRole { Name = "Role" };
+			Role = new IdentityRole("role");
 
 			Claim1 = new IdentityClaim { ClaimType = "Claim1", ClaimValue = "Some value" };
 			Claim2 = new IdentityClaim { ClaimType = "Claim2", ClaimValue = "Some other value" };
@@ -43,6 +44,81 @@ namespace AspNet.Identity3.MongoDB.Tests
 				// assert
 				Assert.NotNull(Role.Claims);
 				Assert.Empty(Role.Claims);
+			}
+		}
+		
+
+		public class EqualsObjMethod : IdentityRoleTests
+		{
+			[Fact]
+			public void When_objects_match_returns_true()
+			{
+				// arrange
+				var obj = (object)new IdentityRole { Id = Role.Id };
+
+
+				// assert
+				Assert.True(Role.Equals(obj));
+			}
+
+			[Fact]
+			public void When_objects_dont_match_returns_false()
+			{
+				// arrange
+				var obj = (object)new IdentityRole { Id = Guid.NewGuid().ToString() };
+
+
+				// assert
+				Assert.False(Role.Equals(obj));
+			}
+
+			[Fact]
+			public void When_object_is_null_returns_false()
+			{
+				// assert
+				Assert.False(Role.Equals((object)null));
+			}
+
+			[Fact]
+			public void When_object_is_different_type_returns_false()
+			{
+				// arrange
+				var obj = (object)"hello world";
+
+				// assert
+				Assert.False(Role.Equals(obj));
+			}
+		}
+
+		public class EqualsMethod : IdentityRoleTests
+		{
+			[Fact]
+			public void When_roles_match_returns_true()
+			{
+				// arrange
+				var c = new IdentityRole {Id = Role.Id};
+
+
+				// assert
+				Assert.True(Role.Equals(c));
+			}
+
+			[Fact]
+			public void When_roles_dont_match_returns_false()
+			{
+				// arrange
+				var c = new IdentityRole {Id = Guid.NewGuid().ToString()};
+
+
+				// assert
+				Assert.False(Role.Equals(c));
+			}
+
+			[Fact]
+			public void When_role_is_null_returns_false()
+			{
+				// assert
+				Assert.False(Role.Equals((IdentityRole)null));
 			}
 		}
 	}
