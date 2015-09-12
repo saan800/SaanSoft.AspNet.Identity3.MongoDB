@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace AspNet.Identity3.MongoDB
@@ -21,6 +24,9 @@ namespace AspNet.Identity3.MongoDB
 		public string UsersCollectionName { get; set; } = "AspNetUsers";
 		public string RolesCollectionName { get; set; } = "AspNetRoles";
 		public MongoCollectionSettings CollectionSettings { get; set; } = new MongoCollectionSettings { WriteConcern = WriteConcern.WMajority };
+
+
+		public CreateIndexOptions CreateIndexOptions { get; set; } = new CreateIndexOptions { Background = true, Sparse = true };
 
 
 		private IMongoClient _client;
@@ -68,7 +74,7 @@ namespace AspNet.Identity3.MongoDB
 
 
 		/// <summary>
-		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="CreateUserCollection"/>
+		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureUserCollectionCreated"/>
 		/// </summary>
 		public virtual IMongoCollection<TUser> Users
 		{
@@ -90,7 +96,7 @@ namespace AspNet.Identity3.MongoDB
 
 
 		/// <summary>
-		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="CreateRoleCollection"/>
+		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureRoleCollectionCreated"/>
 		/// </summary>
 		public virtual IMongoCollection<TRole> Roles
 		{
@@ -117,22 +123,36 @@ namespace AspNet.Identity3.MongoDB
 		/// </summary>
 		/// <remarks>
 		/// Indexes Created:
-		/// Users: Id, NormalizedUserName, NormalizedEmail, LoginProvider, Roles.NormalizedName, Roles.Claims.ClaimType, Claims.ClaimType
+		/// Users: NormalizedUserName, NormalizedEmail, Logins.LoginProvider, Roles.NormalizedName, Claims.ClaimType + Roles.Claims.ClaimType
 		/// </remarks>
-		public virtual void CreateUserCollection()
+		public virtual void EnsureUserCollectionCreated()
 		{
-			// TODO: change so create collections and indexes on appropriate fields 
-			
-			//if (Users == null)
-			//{
-			//	var taskList = new List<Task>
-			//	{
-			//		Database.CreateCollectionAsync(UsersCollectionName),
-			//		Database.CreateCollectionAsync(RolesCollectionName)
-			//	};
+			// ensure collection exists
+			if (!CollectionExists(UsersCollectionName))
+			{
+				// TODO: var temp = new CreateCollectionOptions {};
+				Database.CreateCollectionAsync(UsersCollectionName).Wait();
+			}
 
-			//	Task.WaitAll(taskList.ToArray());
-			//}
+			// ensure NormalizedUserName index exists
+			var normalizedNameIndex = Builders<TUser>.IndexKeys.Ascending(x => x.NormalizedUserName);
+			Users.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
+
+			// ensure NormalizedEmail index exists
+			var normalizedEmailIndex = Builders<TUser>.IndexKeys.Ascending(x => x.NormalizedEmail);
+			Users.Indexes.CreateOneAsync(normalizedEmailIndex, CreateIndexOptions);
+			
+			// ensure Roles.NormalizedName index exists
+			var roleNameIndex = Builders<TUser>.IndexKeys.Ascending("Roles_NormalizedName");
+			Users.Indexes.CreateOneAsync(roleNameIndex, CreateIndexOptions);
+
+			// ensure LoginProvider index exists
+			var loginProviderIndex = Builders<TUser>.IndexKeys.Ascending("Logins_LoginProvider");
+			Users.Indexes.CreateOneAsync(loginProviderIndex, CreateIndexOptions);
+
+			// ensure claims index exists
+			var claimsProviderIndex = Builders<TUser>.IndexKeys.Ascending("Claims_ClaimType").Ascending("Roles_Claims_ClaimType");
+			Users.Indexes.CreateOneAsync(claimsProviderIndex, CreateIndexOptions);
 		}
 
 
@@ -144,26 +164,24 @@ namespace AspNet.Identity3.MongoDB
 		/// Indexes Created:
 		/// Roles: NormalizedName
 		/// </remarks>
-		public virtual void CreateRoleCollection()
+		public virtual void EnsureRoleCollectionCreated()
 		{
-			// TODO: change so create collections and indexes on appropriate fields 
+			// ensure collection exists
+			if (!CollectionExists(RolesCollectionName))
+			{
+				// TODO: var temp = new CreateCollectionOptions {};
+				Database.CreateCollectionAsync(RolesCollectionName).Wait();
+			}
 
-			//if (Users == null)
-			//{
-			//	var taskList = new List<Task>
-			//	{
-			//		Database.CreateCollectionAsync(UsersCollectionName),
-			//		Database.CreateCollectionAsync(RolesCollectionName)
-			//	};
-
-			//	Task.WaitAll(taskList.ToArray());
-			//}
+			// ensure NormalizedName index exists
+			var normalizedNameIndex = Builders<TRole>.IndexKeys.Ascending(x => x.NormalizedName);
+			Roles.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
 		}
 
 		/// <summary>
 		/// WARNING: Permanently deletes user collection, including all indexes and data.
 		/// </summary>
-		public virtual void DeleteUserCollectioAsyncn()
+		public virtual void DeleteUserCollection()
 		{
 			Database.DropCollectionAsync(UsersCollectionName).Wait();
 		}
@@ -171,9 +189,28 @@ namespace AspNet.Identity3.MongoDB
 		/// <summary>
 		/// WARNING: Permanently deletes role collection, including all indexes and data.
 		/// </summary>
-		public virtual void DeleteRoleCollectionAsync()
+		public virtual void DeleteRoleCollection()
 		{
 			Database.DropCollectionAsync(RolesCollectionName).Wait();
+		}
+
+
+		/// <summary>
+		/// check if the collection already exists
+		/// </summary>
+		/// <param name="collectionName"></param>
+		/// <returns></returns>
+		protected virtual bool CollectionExists(string collectionName)
+		{
+			var filter = new BsonDocument("name", collectionName);
+			var cursorTask = Database.ListCollectionsAsync(new ListCollectionsOptions { Filter = filter });
+			cursorTask.Wait();
+
+			var cursor = cursorTask.Result.ToListAsync();
+			cursor.Wait();
+
+			return cursor.Result.Any();
+
 		}
 	}
 }

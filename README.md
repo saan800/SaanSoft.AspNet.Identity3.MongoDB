@@ -19,7 +19,6 @@ The default Mongo details are:
 
 ## Still TODO
 
-* case insensitive string matches
 * sample mvc 6 web implemenation
 * create nuget package
 * help documentation for setup and overriding

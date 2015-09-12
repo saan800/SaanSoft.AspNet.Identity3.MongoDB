@@ -47,8 +47,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 		{
 			RegisterClassMap<IdentityUser, IdentityRole, string>.Init();
 
-			//Below code demonstrates usage of multiple configuration sources. For instance a setting say 'setting1' is found in both the registered sources, 
-			//then the later source will win. By this way a Local config can be overridden by a different setting while deployed remotely.
+			//Get connection string from config.json
 			var builder = new ConfigurationBuilder(".\\").AddJsonFile("config.json");
 			Configuration = builder.Build();
 
