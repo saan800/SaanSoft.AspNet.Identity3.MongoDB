@@ -22,8 +22,8 @@ The default Mongo details are:
 * sample mvc 6 web implemenation
 * create nuget package
 * help documentation for setup and overriding
-* Finish all tests
 * get mongoDB and tests running on AppVeyor
+* Finish all tests
 * When queryable is implemented in mongodb driver (read Warning below), update UserStore and RoleStore implementations
 * dnxcore50 (read Frameworks below)
 

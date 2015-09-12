@@ -36,15 +36,15 @@ namespace AspNet.Identity3.MongoDB.Tests
 			_databaseContext.DeleteRoleCollection();
 		}
 
-		public class EnsureUserCollectionCreatedMethod : IdentityDatabaseContextTests
+		public class EnsureUserIndexesCreatedMethod : IdentityDatabaseContextTests
 		{
-			public EnsureUserCollectionCreatedMethod() : base(typeof(EnsureUserCollectionCreatedMethod).Name) { }
+			public EnsureUserIndexesCreatedMethod() : base(typeof(EnsureUserIndexesCreatedMethod).Name) { }
 
 			[Fact]
 			public async Task When_collection_does_not_exists_then_should_create_collection()
 			{
 				// act
-				_databaseContext.EnsureUserCollectionCreated();
+				_databaseContext.EnsureUserIndexesCreated();
 
 				// assert
 				Assert.True(await DoesCollectionExist(_databaseContext.Database, _databaseContext.UsersCollectionName));
@@ -57,7 +57,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 				await _databaseContext.Users.InsertOneAsync(new IdentityUser("When_collection_already_exists_then_should_not_error"));
 
 				// act
-				_databaseContext.EnsureUserCollectionCreated();
+				_databaseContext.EnsureUserIndexesCreated();
 
 				// assert
 				Assert.True(await DoesCollectionExist(_databaseContext.Database, _databaseContext.UsersCollectionName));
@@ -74,7 +74,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 				Assert.True(await DoesIndexExist(_databaseContext.Users, "NormalizedUserName_1"));
 
 				// act
-				_databaseContext.EnsureUserCollectionCreated();
+				_databaseContext.EnsureUserIndexesCreated();
 
 				// assert
 				Thread.Sleep(100);
@@ -90,7 +90,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			public async Task Should_create_index(string expectedIndexName)
 			{
 				// act
-				_databaseContext.EnsureUserCollectionCreated();
+				_databaseContext.EnsureUserIndexesCreated();
 
 				// assert
 				Thread.Sleep(100);
@@ -98,15 +98,15 @@ namespace AspNet.Identity3.MongoDB.Tests
 			}
 		}
 
-		public class EnsureRoleCollectionCreatedMethod : IdentityDatabaseContextTests
+		public class EnsureRoleIndexesCreatedMethod : IdentityDatabaseContextTests
 		{
-			public EnsureRoleCollectionCreatedMethod() : base(typeof(EnsureRoleCollectionCreatedMethod).Name) { }
+			public EnsureRoleIndexesCreatedMethod() : base(typeof(EnsureRoleIndexesCreatedMethod).Name) { }
 
 			[Fact]
 			public async Task When_collection_does_not_exists_then_should_create_collection()
 			{
 				// act
-				_databaseContext.EnsureRoleCollectionCreated();
+				_databaseContext.EnsureRoleIndexesCreated();
 
 				// assert
 				Assert.True(await DoesCollectionExist(_databaseContext.Database, _databaseContext.RolesCollectionName));
@@ -119,7 +119,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 				await _databaseContext.Roles.InsertOneAsync(new IdentityRole("When_collection_already_exists_then_should_not_error"));
 
 				// act
-				_databaseContext.EnsureRoleCollectionCreated();
+				_databaseContext.EnsureRoleIndexesCreated();
 
 				// assert
 				Assert.True(await DoesCollectionExist(_databaseContext.Database, _databaseContext.RolesCollectionName));
@@ -136,7 +136,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 				Assert.True(await DoesIndexExist(_databaseContext.Roles, "NormalizedName_1"));
 
 				// act
-				_databaseContext.EnsureRoleCollectionCreated();
+				_databaseContext.EnsureRoleIndexesCreated();
 
 				// assert
 				Thread.Sleep(100);
@@ -149,7 +149,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			public async Task Should_create_index(string expectedIndex)
 			{
 				// act
-				_databaseContext.EnsureRoleCollectionCreated();
+				_databaseContext.EnsureRoleIndexesCreated();
 
 				// assert
 				Thread.Sleep(100);

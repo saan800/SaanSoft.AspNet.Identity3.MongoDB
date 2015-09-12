@@ -26,3 +26,6 @@ nuget.exe
 *.ipch
 *.sln.ide
 project.lock.json
+
+node_modules
+lib

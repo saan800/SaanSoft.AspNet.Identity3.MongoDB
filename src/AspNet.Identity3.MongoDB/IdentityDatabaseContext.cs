@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -17,19 +14,22 @@ namespace AspNet.Identity3.MongoDB
 		where TUser : IdentityUser<TKey>
 		where TKey : IEquatable<TKey>
 	{
-		public bool CreateCollectionIndexes { get; set; } = false;
 		public string ConnectionString { get; set; }
 
 		public string DatabaseName { get; set; } = "AspNetIdentity";
 		public string UsersCollectionName { get; set; } = "AspNetUsers";
 		public string RolesCollectionName { get; set; } = "AspNetRoles";
+
+		/// <summary>
+		/// When the <see cref="Users"/> and <see cref="Roles"/> collections are initially fetched - ensure the indexes are created (default: false)
+		/// </summary>
+		public bool CreateCollectionIndexes { get; set; } = false;
+
 		public MongoCollectionSettings CollectionSettings { get; set; } = new MongoCollectionSettings { WriteConcern = WriteConcern.WMajority };
-
-
+		public CreateCollectionOptions CreateCollectionOptions { get; set; } = new CreateCollectionOptions { AutoIndexId = true };
 		public CreateIndexOptions CreateIndexOptions { get; set; } = new CreateIndexOptions { Background = true, Sparse = true };
 
 
-		private IMongoClient _client;
 		public virtual IMongoClient Client
 		{
 			get
@@ -51,9 +51,8 @@ namespace AspNet.Identity3.MongoDB
 			}
 			set { _client = value; }
 		}
+		private IMongoClient _client;
 
-
-		private IMongoDatabase _database;
 		public virtual IMongoDatabase Database
 		{
 			get
@@ -70,11 +69,11 @@ namespace AspNet.Identity3.MongoDB
 			}
 			set { _database = value; }
 		}
-
+		private IMongoDatabase _database;
 
 
 		/// <summary>
-		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureUserCollectionCreated"/>
+		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureUserIndexesCreated"/>
 		/// </summary>
 		public virtual IMongoCollection<TUser> Users
 		{
@@ -86,6 +85,11 @@ namespace AspNet.Identity3.MongoDB
 					{
 						throw new NullReferenceException($"The parameter '{nameof(UsersCollectionName)}' in '{typeof (IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(Users)}'. This is usually configured as part of Startup.cs");
 					}
+					if (CreateCollectionIndexes)
+					{
+						EnsureUserIndexesCreated();
+					}
+
 					_users = Database.GetCollection<TUser>(UsersCollectionName, CollectionSettings);
 				}
 				return _users;
@@ -96,7 +100,7 @@ namespace AspNet.Identity3.MongoDB
 
 
 		/// <summary>
-		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureRoleCollectionCreated"/>
+		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureRoleIndexesCreated"/>
 		/// </summary>
 		public virtual IMongoCollection<TRole> Roles
 		{
@@ -107,6 +111,10 @@ namespace AspNet.Identity3.MongoDB
 					if (string.IsNullOrWhiteSpace(RolesCollectionName))
 					{
 						throw new NullReferenceException($"The parameter '{nameof(RolesCollectionName)}' in '{typeof(IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(Roles)}'. This is usually configured as part of Startup.cs");
+					}
+					if (CreateCollectionIndexes)
+					{
+						EnsureRoleIndexesCreated();
 					}
 					_roles = Database.GetCollection<TRole>(RolesCollectionName, CollectionSettings);
 				}
@@ -125,13 +133,12 @@ namespace AspNet.Identity3.MongoDB
 		/// Indexes Created:
 		/// Users: NormalizedUserName, NormalizedEmail, Logins.LoginProvider, Roles.NormalizedName, Claims.ClaimType + Roles.Claims.ClaimType
 		/// </remarks>
-		public virtual void EnsureUserCollectionCreated()
+		public virtual void EnsureUserIndexesCreated()
 		{
 			// ensure collection exists
 			if (!CollectionExists(UsersCollectionName))
 			{
-				// TODO: var temp = new CreateCollectionOptions {};
-				Database.CreateCollectionAsync(UsersCollectionName).Wait();
+				Database.CreateCollectionAsync(UsersCollectionName, CreateCollectionOptions).Wait();
 			}
 
 			// ensure NormalizedUserName index exists
@@ -164,13 +171,12 @@ namespace AspNet.Identity3.MongoDB
 		/// Indexes Created:
 		/// Roles: NormalizedName
 		/// </remarks>
-		public virtual void EnsureRoleCollectionCreated()
+		public virtual void EnsureRoleIndexesCreated()
 		{
 			// ensure collection exists
 			if (!CollectionExists(RolesCollectionName))
 			{
-				// TODO: var temp = new CreateCollectionOptions {};
-				Database.CreateCollectionAsync(RolesCollectionName).Wait();
+				Database.CreateCollectionAsync(RolesCollectionName, CreateCollectionOptions).Wait();
 			}
 
 			// ensure NormalizedName index exists
