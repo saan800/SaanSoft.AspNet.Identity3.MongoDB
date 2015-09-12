@@ -21,7 +21,6 @@ namespace AspNet.Identity3.MongoDB
 		/// Display name for the login
 		/// </summary>
 		public virtual string ProviderDisplayName { get; set; }
-
 		
 		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
 		

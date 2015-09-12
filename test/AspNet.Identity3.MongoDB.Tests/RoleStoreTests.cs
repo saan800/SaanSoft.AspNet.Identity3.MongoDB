@@ -62,8 +62,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 				var roleFromDb = await _roleCollection.Find(x => x.Id == role.Id).SingleOrDefaultAsync();
 				IdentityRoleAssert.Equal(role, roleFromDb);
 			}
-
-
+			
 			[Fact]
 			public async Task Creating_same_role_twice_returns_DuplicateRoleName_error()
 			{
@@ -89,6 +88,24 @@ namespace AspNet.Identity3.MongoDB.Tests
 				// arrange
 				var role1 = new IdentityRole("Creating_two_different_roles_but_same_Name_returns_DuplicateRoleName_error");
 				var role2 = new IdentityRole(role1.Name);
+
+				// act
+				var result1 = await _roleStore.CreateAsync(role1);
+				var result2 = await _roleStore.CreateAsync(role2);
+
+				// assert
+				IdentityResultAssert.IsSuccess(result1);
+
+				var expectedError = IdentityResult.Failed(_errorDescriber.DuplicateRoleName(role2.ToString()));
+				IdentityResultAssert.IsFailure(result2, expectedError.Errors.FirstOrDefault());
+			}
+
+			[Fact]
+			public async Task Creating_two_different_roles_with_same_Name_different_casing_returns_DuplicateRoleName_error()
+			{
+				// arrange
+				var role1 = new IdentityRole("Creating_two_different_roles_with_same_Name_different_casing_returns_DuplicateRoleName_error");
+				var role2 = new IdentityRole(role1.Name.ToUpper());
 
 				// act
 				var result1 = await _roleStore.CreateAsync(role1);
@@ -188,7 +205,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 				// assert
 				var expectedError = IdentityResult.Failed(_errorDescriber.DuplicateRoleName(role2.ToString()));
-				IdentityResultAssert.IsFailure(result3,expectedError.Errors.FirstOrDefault());
+				IdentityResultAssert.IsFailure(result3, expectedError.Errors.FirstOrDefault());
 			}
 			
 			[Fact]
@@ -384,11 +401,24 @@ namespace AspNet.Identity3.MongoDB.Tests
 			{
 				// arrange
 				var role = new IdentityRole("Known_normalizedRoleName_returns_IdentityRole");
-				role.NormalizedName = role.Name;
 				await _roleStore.CreateAsync(role);
 
 				// act
-				var result = await _roleStore.FindByNameAsync(role.NormalizedName);
+				var result = await _roleStore.FindByNameAsync(role.Name);
+
+				// assert
+				IdentityRoleAssert.Equal(role, result);
+			}
+
+			[Fact]
+			public async Task Case_insensitive_normalizedRoleName_returns_IdentityRole()
+			{
+				// arrange
+				var role = new IdentityRole("Case_insensitive_normalizedRoleName_returns_IdentityRole");
+				await _roleStore.CreateAsync(role);
+
+				// act
+				var result = await _roleStore.FindByNameAsync(role.Name.ToUpper());
 
 				// assert
 				IdentityRoleAssert.Equal(role, result);
@@ -607,6 +637,33 @@ namespace AspNet.Identity3.MongoDB.Tests
 				var claim1 = new Claim("ClaimType", "some value");
 				var claim2 = new Claim("ClaimType2", "some other value");
 				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type, ClaimValue = claim1.Value };
+				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
+
+				var role = new IdentityRole("Remove_existing_claim_updates_database_role_record");
+				role.Claims.Add(identityClaim1);
+				role.Claims.Add(identityClaim2);
+				await _roleStore.CreateAsync(role);
+
+				// act
+				await _roleStore.RemoveClaimAsync(role, claim1);
+
+				// assert
+
+				// check role claims from memory
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, role.Claims);
+
+				// check role claims from DB
+				var roleFromDb = await _roleCollection.Find(x => x.Id == role.Id).SingleOrDefaultAsync();
+				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim2 }, roleFromDb.Claims);
+			}
+
+			[Fact]
+			public async Task Remove_existing_claim_different_casing_updates_database_role_record()
+			{
+				// arrange
+				var claim1 = new Claim("ClaimType", "some value");
+				var claim2 = new Claim("ClaimType2", "some other value");
+				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type.ToUpper(), ClaimValue = claim1.Value.ToUpper() };
 				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
 
 				var role = new IdentityRole("Remove_existing_claim_updates_database_role_record");

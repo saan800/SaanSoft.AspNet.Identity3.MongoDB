@@ -43,7 +43,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			_databaseContext = new IdentityDatabaseContext { Users = _userCollection, Roles = _roleCollection };
 
 			_errorDescriber = new IdentityErrorDescriber();
-			_userStore = new UserStore<IdentityUser, IdentityRole>(_databaseContext, _errorDescriber);
+			_userStore = new UserStore<IdentityUser, IdentityRole>(_databaseContext, null, _errorDescriber);
 
 
 			_claim1 = new Claim("ClaimType1", "some value");
@@ -128,6 +128,27 @@ namespace AspNet.Identity3.MongoDB.Tests
 					var expectedError = IdentityResult.Failed(_errorDescriber.DuplicateUserName(user2.ToString()));
 					IdentityResultAssert.IsFailure(result2, expectedError.Errors.FirstOrDefault());
 				}
+
+				[Fact]
+				public async Task Create_a_user_without_NormalizedUserName_and_NormalizedEmail_sets_to_UserName_and_Email()
+				{
+					// arrange
+					var user = new IdentityUser
+					{
+						UserName = "FarlyFoo",
+						Email = "farly@foo.com"
+					};
+
+					// act
+					var result = await _userStore.CreateAsync(user);
+
+					// assert
+					IdentityResultAssert.IsSuccess(result);
+
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.Equal(user.UserName.ToLower(), await _userStore.GetNormalizedUserNameAsync(userFromDb));
+					Assert.Equal(user.Email.ToLower(), await _userStore.GetNormalizedEmailAsync(userFromDb));
+				}
 			}
 
 			public class UpdateAsyncMethod : IUserStoreTests
@@ -211,6 +232,26 @@ namespace AspNet.Identity3.MongoDB.Tests
 					// assert
 					var expectedError = IdentityResult.Failed(_errorDescriber.DuplicateUserName(user2.ToString()));
 					IdentityResultAssert.IsFailure(result3, expectedError.Errors.FirstOrDefault());
+				}
+
+				[Fact]
+				public async Task Update_a_user_without_NormalizedUserName_and_NormalizedEmail_sets_to_UserName_and_Email()
+				{
+					// arrange
+					var user = new IdentityUser
+					{
+						UserName = "FarlyFoo",
+						Email = "farly@foo.com"
+					};
+					await _userCollection.InsertOneAsync(user);
+
+					// act
+					await _userStore.UpdateAsync(user);
+
+					// assert
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.Equal(user.UserName.ToLower(), await _userStore.GetNormalizedUserNameAsync(userFromDb));
+					Assert.Equal(user.Email.ToLower(), await _userStore.GetNormalizedEmailAsync(userFromDb));
 				}
 			}
 
@@ -311,11 +352,24 @@ namespace AspNet.Identity3.MongoDB.Tests
 				{
 					// arrange
 					var user = new IdentityUser("Known_normalizedUserName_returns_IdentityUser");
-					user.NormalizedUserName = user.UserName;
 					await _userStore.CreateAsync(user);
 
 					// act
-					var result = await _userStore.FindByNameAsync(user.NormalizedUserName);
+					var result = await _userStore.FindByNameAsync(user.UserName);
+
+					// assert
+					IdentityUserAssert.Equal(user, result);
+				}
+
+				[Fact]
+				public async Task Case_insensitive_userName_returns_IdentityUser()
+				{
+					// arrange
+					var user = new IdentityUser("Case_insensitive_normalizedUserName_returns_IdentityUser");
+					await _userStore.CreateAsync(user);
+
+					// act
+					var result = await _userStore.FindByNameAsync(user.UserName.ToUpper());
 
 					// assert
 					IdentityUserAssert.Equal(user, result);
@@ -773,6 +827,41 @@ namespace AspNet.Identity3.MongoDB.Tests
 					// assert
 					Assert.Equal(2, result.Count);
 					IdentityUserAssert.Equal(new List<IdentityUser> {user1, user2}, result);
+				}
+				
+				[Fact]
+				public async Task Users_for_role_with_claim_returns_list_with_matching_users()
+				{
+					// arrange
+					var role1 = new IdentityRole("Role 1");
+					role1.Claims.Add(_identityClaim1);
+					role1.Claims.Add(_identityClaim2);
+
+					var role2 = new IdentityRole("Role 2");
+					role2.Claims.Add(_identityClaim1);
+
+					var role3 = new IdentityRole("Role 3");
+					role3.Claims.Add(_identityClaim2);
+
+					var user1 = new IdentityUser("Users_for_role_with_claim_returns_list_with_matching_users-1");
+					user1.Roles.Add(role1);
+					await _userStore.CreateAsync(user1);
+
+					var user2 = new IdentityUser("Users_for_role_with_claim_returns_list_with_matching_users-2");
+					user2.Roles.Add(role2);
+					await _userStore.CreateAsync(user2);
+
+					var user3 = new IdentityUser("Users_for_role_with_claim_returns_list_with_matching_users-3");
+					user3.Roles.Add(role3);
+					await _userStore.CreateAsync(user3);
+
+
+					// act
+					var result = await _userStore.GetUsersForClaimAsync(_claim1);
+
+					// assert
+					Assert.Equal(2, result.Count);
+					IdentityUserAssert.Equal(new List<IdentityUser> { user1, user2 }, result);
 				}
 			}
 		}

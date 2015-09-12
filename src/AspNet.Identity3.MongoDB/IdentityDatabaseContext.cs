@@ -14,7 +14,7 @@ namespace AspNet.Identity3.MongoDB
 		where TUser : IdentityUser<TKey>
 		where TKey : IEquatable<TKey>
 	{
-			
+		public bool CreateCollectionIndexes { get; set; } = false;
 		public string ConnectionString { get; set; }
 
 		public string DatabaseName { get; set; } = "AspNetIdentity";
@@ -59,8 +59,6 @@ namespace AspNet.Identity3.MongoDB
 						throw new NullReferenceException($"The parameter '{nameof(DatabaseName)}' in '{typeof(IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(Database)}'. This is usually configured as part of Startup.cs");
 					}
 					_database = Client.GetDatabase(DatabaseName);
-
-
 				}
 				return _database;
 			}
@@ -68,7 +66,10 @@ namespace AspNet.Identity3.MongoDB
 		}
 
 
-		private IMongoCollection<TUser> _users;
+
+		/// <summary>
+		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="CreateUserCollection"/>
+		/// </summary>
 		public virtual IMongoCollection<TUser> Users
 		{
 			get
@@ -85,9 +86,12 @@ namespace AspNet.Identity3.MongoDB
 			}
 			set { _users = value; }
 		}
+		private IMongoCollection<TUser> _users;
 
 
-		private IMongoCollection<TRole> _roles;
+		/// <summary>
+		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="CreateRoleCollection"/>
+		/// </summary>
 		public virtual IMongoCollection<TRole> Roles
 		{
 			get
@@ -104,35 +108,72 @@ namespace AspNet.Identity3.MongoDB
 			}
 			set { _roles = value; }
 		}
-		
+		private IMongoCollection<TRole> _roles;
 
 
 
-		public virtual void CreateModel()
+		/// <summary>
+		/// Ensures the user collection is instantiated, and has the standard indexes applied. Called when <see cref="Users"/> is called if <see cref="CreateCollectionIndexes"/> == true.
+		/// </summary>
+		/// <remarks>
+		/// Indexes Created:
+		/// Users: Id, NormalizedUserName, NormalizedEmail, LoginProvider, Roles.NormalizedName, Roles.Claims.ClaimType, Claims.ClaimType
+		/// </remarks>
+		public virtual void CreateUserCollection()
 		{
 			// TODO: change so create collections and indexes on appropriate fields 
-			// Users: normalizedUserName, FindByLoginAsync(loginProvider, providerKey), normalizedEmail, GetUsersForClaimAsync(Claim), GetUsersInRoleAsync(roleName), role.Id
-			// Roles: normalisedName
-
+			
 			//if (Users == null)
 			//{
-			//	List<Task> TaskList = new List<Task>();
+			//	var taskList = new List<Task>
+			//	{
+			//		Database.CreateCollectionAsync(UsersCollectionName),
+			//		Database.CreateCollectionAsync(RolesCollectionName)
+			//	};
 
-			//	TaskList.Add(Database.CreateCollectionAsync(UsersCollectionName));
-			//	TaskList.Add(Database.CreateCollectionAsync(RolesCollectionName));
-
-			//	Task.WaitAll(TaskList.ToArray());
+			//	Task.WaitAll(taskList.ToArray());
 			//}
 		}
 
-		public virtual void DropCollections()
+
+
+		/// <summary>
+		/// Ensures the role collection is instantiated, and has the standard indexes applied. Called when <see cref="Roles"/> is called if <see cref="CreateCollectionIndexes"/> == true.
+		/// </summary>
+		/// <remarks>
+		/// Indexes Created:
+		/// Roles: NormalizedName
+		/// </remarks>
+		public virtual void CreateRoleCollection()
 		{
-			List<Task> TaskList = new List<Task>();
+			// TODO: change so create collections and indexes on appropriate fields 
 
-			TaskList.Add(Database.DropCollectionAsync(UsersCollectionName));
-			TaskList.Add(Database.DropCollectionAsync(RolesCollectionName));
+			//if (Users == null)
+			//{
+			//	var taskList = new List<Task>
+			//	{
+			//		Database.CreateCollectionAsync(UsersCollectionName),
+			//		Database.CreateCollectionAsync(RolesCollectionName)
+			//	};
 
-			Task.WaitAll(TaskList.ToArray());
+			//	Task.WaitAll(taskList.ToArray());
+			//}
+		}
+
+		/// <summary>
+		/// WARNING: Permanently deletes user collection, including all indexes and data.
+		/// </summary>
+		public virtual void DeleteUserCollectioAsyncn()
+		{
+			Database.DropCollectionAsync(UsersCollectionName).Wait();
+		}
+
+		/// <summary>
+		/// WARNING: Permanently deletes role collection, including all indexes and data.
+		/// </summary>
+		public virtual void DeleteRoleCollectionAsync()
+		{
+			Database.DropCollectionAsync(RolesCollectionName).Wait();
 		}
 	}
 }

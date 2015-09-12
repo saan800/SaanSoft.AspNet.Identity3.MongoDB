@@ -15,7 +15,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 		public UserStoreInMemoryTests()
 		{
 			var databaseContext = new IdentityDatabaseContext();
-			// "mongodb://localhost:27017"
 			_userStore = new UserStore<IdentityUser, IdentityRole>(databaseContext);
 		}
 
@@ -25,7 +24,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			public void Constructors_throw_ArgumentNullException_with_null()
 			{
 				Assert.Throws<ArgumentNullException>("databaseContext", () => new UserStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null));
-				Assert.Throws<ArgumentNullException>("databaseContext", () => new UserStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null, new IdentityErrorDescriber()));
+				Assert.Throws<ArgumentNullException>("databaseContext", () => new UserStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null, null, new IdentityErrorDescriber()));
 			}
 
 			[Fact]
@@ -158,18 +157,23 @@ namespace AspNet.Identity3.MongoDB.Tests
 			[InlineData(null)]
 			[InlineData("")]
 			[InlineData("Returns_NormalizedUserName_from_user")]
-			public async Task Returns_NormalizedUserName_from_user(string normalizedUuserName)
+			public async Task Returns_NormalizedUserName_from_user(string normalizedUserName)
 			{
 				// arrange
-				var user = new IdentityUser();
-				user.NormalizedUserName = normalizedUuserName;
+				var user = new IdentityUser(normalizedUserName);
 
 				// act
 				var result = await _userStore.GetNormalizedUserNameAsync(user);
 
 				// assert
-				Assert.Equal(user.NormalizedUserName, result);
-				Assert.Equal(normalizedUuserName, result);
+				if (string.IsNullOrWhiteSpace(normalizedUserName))
+				{
+					Assert.Equal(normalizedUserName, result);
+				}
+				else
+				{
+					Assert.Equal(normalizedUserName.ToLower(), result);
+				}
 			}
 		}
 
@@ -179,20 +183,28 @@ namespace AspNet.Identity3.MongoDB.Tests
 			[InlineData(null)]
 			[InlineData("")]
 			[InlineData("Sets_UserName_to_supplied_value")]
-			public async Task Sets_UserName_to_supplied_value(string normalizedUuserName)
+			public async Task Sets_UserName_to_supplied_value(string normalizedUserName)
 			{
 				// arrange
 				var user = new IdentityUser();
 
 				// act
-				await _userStore.SetNormalizedUserNameAsync(user, normalizedUuserName);
+				await _userStore.SetNormalizedUserNameAsync(user, normalizedUserName);
 
 				// assert
-				Assert.Equal(normalizedUuserName, user.NormalizedUserName);
+				if (string.IsNullOrWhiteSpace(normalizedUserName))
+				{
+					Assert.Equal(normalizedUserName, user.NormalizedUserName);
+				}
+				else
+				{
+					Assert.Equal(normalizedUserName.ToLower(), user.NormalizedUserName);
+				}
 			}
 		}
 
-		public class GetClaimsAsyncMethod : UserStoreInMemoryTests
+
+	public class GetClaimsAsyncMethod : UserStoreInMemoryTests
 		{
 			[Fact]
 			public async Task Returns_empty_list_when_claims_on_user_not_set()

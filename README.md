@@ -1,6 +1,6 @@
-# AspNet.Identity3.MongoDB (in progress)
+# AspNet.Identity3.MongoDB
 
-[![Build status](https://ci.appveyor.com/api/projects/status/yopbw2mrf8ppqfkp/branch/master?svg=true)](https://ci.appveyor.com/project/saan800/aspnet-identity3-mongodb/branch/master)
+<!-- [![Build status](https://ci.appveyor.com/api/projects/status/yopbw2mrf8ppqfkp/branch/master?svg=true)](https://ci.appveyor.com/project/saan800/aspnet-identity3-mongodb/branch/master) -->
 
 An implementation for MongoDB.Driver (>= v2.0.0) with ASP.NET 5 Identity (>= v3) framework at <https://github.com/aspnet/Identity>
 
@@ -17,12 +17,26 @@ The default Mongo details are:
 * Mongo Collection Settings: WriteConcern.WMajority
 
 
+## Still TODO
+
+* case insensitive string matches
+* sample mvc 6 web implemenation
+* create nuget package
+* help documentation for setup and overriding
+* Finish all tests
+* get mongoDB and tests running on AppVeyor
+* When queryable is implemented in mongodb driver (read Warning below), update UserStore and RoleStore implementations
+* dnxcore50 (read Frameworks below)
+
+
 ## Frameworks
 Currently only available for dnx451
 
 Keeping an eye on these issues for mongoDB to be available in dnxcore50
 - <https://jira.mongodb.org/browse/CSHARP-1177>
 - <https://github.com/mongodb/mongo-csharp-driver/pull/210>
+
+
 
 
 # WARNING

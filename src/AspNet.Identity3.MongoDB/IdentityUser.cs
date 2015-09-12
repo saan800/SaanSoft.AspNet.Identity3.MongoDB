@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace AspNet.Identity3.MongoDB
 {
+
 	public class IdentityUser : IdentityUser<string>
 	{
 		public IdentityUser() : base()
@@ -33,6 +35,8 @@ namespace AspNet.Identity3.MongoDB
 		where TRole : IdentityRole<TKey>
 		where TKey : IEquatable<TKey>
 	{
+
+
 		public IdentityUser() { }
 
 		public IdentityUser(string userName) : this()
@@ -42,12 +46,24 @@ namespace AspNet.Identity3.MongoDB
 
 		public virtual TKey Id { get; set; }
 		public virtual string UserName { get; set; }
+		
+		/// /// <summary>
+		/// NOTE: should not be used except when extending AspNet.Identity3.MongoDB. 
+		/// Value will be overridden by RoleStore.
+		/// Used to store the username that is formatted in a case insensitive way so can do searches on it
+		/// </summary>
 		public virtual string NormalizedUserName { get; set; }
 
 		/// <summary>
 		/// Email
 		/// </summary>
 		public virtual string Email { get; set; }
+		
+		/// /// <summary>
+		/// NOTE: should not be used except when extending AspNet.Identity3.MongoDB. 
+		/// Value will be overridden by RoleStore.
+		/// Used to store the email that is formatted in a case insensitive way so can do searches on it
+		/// </summary>
 		public virtual string NormalizedEmail { get; set; }
 
 		/// <summary>

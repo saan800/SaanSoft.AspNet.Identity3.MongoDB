@@ -14,9 +14,7 @@ namespace AspNet.Identity3.MongoDB
 		where TUser : IdentityUser<string>
 		where TRole : IdentityRole<string>
 	{
-		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext) : base(databaseContext, null) { }
-
-		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, IdentityErrorDescriber describer) : base(databaseContext, describer) { }
+		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null) : base(databaseContext, normalizer, describer) { }
 	}
 
 	public class UserStore<TUser, TRole, TKey> :
@@ -34,19 +32,18 @@ namespace AspNet.Identity3.MongoDB
 		where TRole : IdentityRole<TKey>
 		where TKey : IEquatable<TKey>
 	{
-
-		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext) : this(databaseContext, null) { }
-
-		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, IdentityErrorDescriber describer)
+		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null)
 		{
 			if (databaseContext == null) throw new ArgumentNullException(nameof(databaseContext));
 
 			DatabaseContext = databaseContext;
+			Normalizer = normalizer;
 			ErrorDescriber = describer ?? new IdentityErrorDescriber();
 		}
-
-
+		
 		protected IdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
+		
+		protected ILookupNormalizer Normalizer { get; set; }
 
 		/// <summary>
 		/// Used to generate public API error messages
@@ -114,23 +111,23 @@ namespace AspNet.Identity3.MongoDB
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 
-			return Task.FromResult(user.NormalizedUserName);
+			return Task.FromResult(user.NormalizedUserName ?? Normalize(user.UserName));
 		}
 
 		/// <summary>
 		/// Sets the given normalized name for the specified <paramref name="user"/>, as an asynchronous operation.
 		/// </summary>
 		/// <param name="user">The user whose name should be set.</param>
-		/// <param name="normalizedName">The normalized name to set.</param>
+		/// <param name="normalizedUserName">The normalized name to set.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-		public virtual Task SetNormalizedUserNameAsync(TUser user, string normalizedName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual Task SetNormalizedUserNameAsync(TUser user, string normalizedUserName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 
-			user.NormalizedUserName = normalizedName;
+			user.NormalizedUserName = Normalize(normalizedUserName);
 			return Task.FromResult(0);
 		}
 
@@ -142,12 +139,14 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the creation operation.</returns>
 		public virtual async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			if (await UserDetailsAlreadyExists(user, cancellationToken)) return IdentityResult.Failed(ErrorDescriber.DuplicateUserName(user.ToString()));
 
 			try
 			{
+				ConfigureDefaults(user);
 				await DatabaseContext.Users.InsertOneAsync(user, cancellationToken);
 			}
 			catch (MongoWriteException)
@@ -166,9 +165,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
 		public virtual async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			if (await UserDetailsAlreadyExists(user, cancellationToken)) return IdentityResult.Failed(ErrorDescriber.DuplicateUserName(user.ToString()));
+			ConfigureDefaults(user);
 
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, user.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true };
@@ -185,6 +186,7 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
 		public virtual async Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 
@@ -204,6 +206,7 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<TUser> FindByIdAsync(string userId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			TKey id = ConvertIdFromString(userId);
 			if (id == null) return Task.FromResult((TUser)null);
@@ -224,11 +227,12 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<TUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 
 			if (string.IsNullOrWhiteSpace(normalizedUserName)) return Task.FromResult((TUser)null);
-
-			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, normalizedUserName);
+			
+			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, Normalize(normalizedUserName));
 			var options = new FindOptions { AllowPartialResults = false };
 
 			return DatabaseContext.Users.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
@@ -253,8 +257,11 @@ namespace AspNet.Identity3.MongoDB
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			if (login == null) throw new ArgumentNullException(nameof(login));
 			EnsureLoginsNotNull(user);
-			
 
+			// check if login already exists for this provider and remove old details
+			await RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey, cancellationToken);
+
+			// add new details
 			var iul = new IdentityUserLogin
 			{
 				ProviderKey = login.ProviderKey,
@@ -262,18 +269,7 @@ namespace AspNet.Identity3.MongoDB
 				ProviderDisplayName = login.ProviderDisplayName
 			};
 
-			// check if login already exists and remove old details
-			var existingLogin = user.Logins.SingleOrDefault(l => l.Equals(iul));
-			if (existingLogin != null)
-			{
-				user.Logins.Remove(existingLogin);
-
-				var updateRemove = Builders<TUser>.Update.Pull(x => x.Logins, existingLogin);
-				await DoUserDetailsUpdate(user.Id, updateRemove, null, cancellationToken);
-			}
-
 			user.Logins.Add(iul);
-			// update in database
 			var update = Builders<TUser>.Update.Push(x => x.Logins, iul);
 			await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 		}
@@ -292,19 +288,22 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
+			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			
-			var iul = user.Logins.SingleOrDefault(l => l.Equals(new IdentityUserLogin { LoginProvider = loginProvider, ProviderKey = providerKey }));
-			if (iul != null)
-			{
-				user.Logins.Remove(iul);
+			EnsureLoginsNotNull(user);
 
-				// update in database
-				var update = Builders<TUser>.Update.Pull(x => x.Logins, iul);
-				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+			var existingLogins = user.Logins.Where(l => l.Equals(new IdentityUserLogin { LoginProvider = loginProvider, ProviderKey = providerKey })).ToList();
+			if (existingLogins.Any())
+			{
+				foreach (var el in existingLogins)
+				{
+					user.Logins.Remove(el);
+				}
+
+				var updateRemove = Builders<TUser>.Update.PullAll(x => x.Logins, existingLogins);
+				await DoUserDetailsUpdate(user.Id, updateRemove, null, cancellationToken);
 			}
 		}
 
@@ -322,6 +321,7 @@ namespace AspNet.Identity3.MongoDB
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
+			EnsureLoginsNotNull(user);
 
 			IList<UserLoginInfo> logins = user.Logins.Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)).ToList();
 			return Task.FromResult(logins);
@@ -338,10 +338,10 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual async Task<TUser> FindByLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
+			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
-
+			
 			var loginBuilder = Builders<IdentityUserLogin>.Filter;
 			var loginFilter = loginBuilder.Eq(x => x.LoginProvider, loginProvider) & loginBuilder.Eq(x => x.ProviderKey, providerKey);
 
@@ -359,35 +359,32 @@ namespace AspNet.Identity3.MongoDB
 		/// Add a the specified <paramref name="user"/> to the named role, as an asynchronous operation.
 		/// </summary>
 		/// <param name="user">The user to add to the named role.</param>
-		/// <param name="roleName">The name of the role to add the user to.</param>
+		/// <param name="normalizedRoleName">The name of the role to add the user to.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-		public virtual async Task AddToRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task AddToRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
+			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
-			EnsureRolesNotNull(user);
+			if (string.IsNullOrWhiteSpace(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
 
 			// get role details
-			// TODO: case insensitive
-			var roleFilter = Builders<TRole>.Filter.Eq(x => x.Name, roleName);
+			var roleFilter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, Normalize(normalizedRoleName));
 			var role = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
 
 			if (role == null)
 			{
-				throw new InvalidOperationException($"Role {roleName} does not exist.");
+				throw new InvalidOperationException($"Role {normalizedRoleName} does not exist.");
 			}
 
 			// check if role already exists for user, no need to do anything else if its already on the user
+			EnsureRolesNotNull(user);
 			if (user.Roles.Any(r => ConvertIdToString(r.Id) == ConvertIdToString(role.Id))) return;
-
-
+			
+			// add role to user
 			user.Roles.Add(role);
-
-			// update in database
 			var update = Builders<TUser>.Update.Push(x => x.Roles, role);
 			await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 		}
@@ -396,38 +393,39 @@ namespace AspNet.Identity3.MongoDB
 		/// Add a the specified <paramref name="user"/> from the named role, as an asynchronous operation.
 		/// </summary>
 		/// <param name="user">The user to remove the named role from.</param>
-		/// <param name="roleName">The name of the role to remove.</param>
+		/// <param name="normalizedRoleName">The normalized name of the role to remove.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-		public virtual async Task RemoveFromRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task RemoveFromRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			// TODO: tests
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			if (string.IsNullOrWhiteSpace(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
 			EnsureRolesNotNull(user);
 
 			// get role details
-			var existingRole = user.Roles.SingleOrDefault(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
-			if (existingRole != null)
+			var existingRoles = user.Roles.Where(r => r.NormalizedName.Equals(normalizedRoleName, StringComparison.OrdinalIgnoreCase)).ToList();
+			if (existingRoles.Any())
 			{
-				user.Roles.Remove(existingRole);
+				foreach (var er in existingRoles)
+				{
+					user.Roles.Remove(er);
+				}
 				
 				// update in database
-				var update = Builders<TUser>.Update.Pull(x => x.Roles, existingRole);
+				var update = Builders<TUser>.Update.PullAll(x => x.Roles, existingRoles);
 				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
+				return;
 			}
-
-
-			// TODO: case insensitive match
-			var roleFilter = Builders<TRole>.Filter.Eq(x => x.Name, roleName);
+			
+			
+			var roleFilter = Builders<TRole>.Filter.Regex(x => x.NormalizedName, Normalize(normalizedRoleName));
 			var roleFromDb = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
 			if (roleFromDb != null)
 			{
 				user.Roles.Remove(roleFromDb);
-
-				// update in database
 				var update = Builders<TUser>.Update.Pull(x => x.Roles, roleFromDb);
 				await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 			}
@@ -455,41 +453,40 @@ namespace AspNet.Identity3.MongoDB
 		/// Returns a flag indicating whether the specified <paramref name="user"/> is a member of the give named role, as an asynchronous operation.
 		/// </summary>
 		/// <param name="user">The user whose role membership should be checked.</param>
-		/// <param name="roleName">The name of the role to be checked.</param>
+		/// <param name="normalizedRoleName">The normalized name of the role to be checked.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>
 		/// The <see cref="Task"/> that represents the asynchronous operation, containing a flag indicating whether the specified <see cref="user"/> is
 		/// a member of the named role.
 		/// </returns>
-		public virtual Task<bool> IsInRoleAsync(TUser user, string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual Task<bool> IsInRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			// TODO: tests
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			if (string.IsNullOrWhiteSpace(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
 			EnsureRolesNotNull(user);
 
-			return Task.FromResult(user.Roles.Any(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase)));
+			return Task.FromResult(user.Roles.Any(r => r.Name.Equals(normalizedRoleName, StringComparison.OrdinalIgnoreCase)));
 		}
 
 		/// <summary>
 		/// Returns a list of Users who are members of the named role.
 		/// </summary>
-		/// <param name="roleName">The name of the role whose membership should be returned.</param>
+		/// <param name="normalizedRoleName">The normalized name of the role whose membership should be returned.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
 		/// <returns>
 		/// The <see cref="Task"/> that represents the asynchronous operation, containing a list of users who are in the named role.
 		/// </returns>
-		public virtual async Task<IList<TUser>> GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default(CancellationToken))
+		public virtual async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
+			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
-			if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentNullException(nameof(roleName));
+			if (string.IsNullOrWhiteSpace(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
 			
-			// TODO: make case insensitive
-			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.Name, roleName);
+			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.NormalizedName, Normalize(normalizedRoleName));
 
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.ElemMatch(x => x.Roles, roleFilter);
@@ -533,16 +530,13 @@ namespace AspNet.Identity3.MongoDB
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			EnsureClaimsNotNull(user);
-			if (claims == null || !claims.Any()) return;
+			if (claims == null) return;
 
-			// claim and value already exist - just return
-			var newClaimsList = new List<IdentityClaim>();
-			foreach (var c in 
-					from claim in claims 
-					where !user.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value) 
-					select new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value })
+			// find new claims
+			var newClaimsList = claims.Select(x => new IdentityClaim { ClaimType = x.Type, ClaimValue = x.Value })
+									  .Where(x => !user.Claims.Any(uc => uc.Equals(x))).ToList();
+			foreach (var c in newClaimsList)
 			{
-				newClaimsList.Add(c);
 				user.Claims.Add(c);
 			}
 
@@ -571,7 +565,7 @@ namespace AspNet.Identity3.MongoDB
 			EnsureClaimsNotNull(user);
 
 
-			var matchedClaims = user.Claims.Where(uc=> uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToList();
+			var matchedClaims = user.Claims.Where(uc=> uc.Equals(new IdentityClaim {ClaimType = claim.Type, ClaimValue = claim.Value})).ToList();
 			if (matchedClaims.Any())
 			{
 				foreach (var matchedClaim in matchedClaims)
@@ -614,7 +608,7 @@ namespace AspNet.Identity3.MongoDB
 		}
 
 		/// <summary>
-		/// Returns a list of users who contain the specified <see cref="Claim"/>.
+		/// Returns a list of users who contain the specified <see cref="Claim"/> or have an <see cref="IdentityRole"/> with the specified <see cref="Claim"/>.
 		/// </summary>
 		/// <param name="claim">The claim to look for.</param>
 		/// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be cancelled.</param>
@@ -626,12 +620,15 @@ namespace AspNet.Identity3.MongoDB
 		{
 			ThrowIfDisposed();
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
-
+			
 			var claimBuilder = Builders<IdentityClaim>.Filter;
 			var claimFilter = claimBuilder.Eq(x => x.ClaimType, claim.Type) & claimBuilder.Eq(x => x.ClaimValue, claim.Value);
-
+			
+			var roleClaimFilter = Builders<IdentityRole<TKey>>.Filter.ElemMatch(x => x.Claims, claimFilter);
+			
 			var fBuilder = Builders<TUser>.Filter;
-			var filter = fBuilder.ElemMatch(x => x.Claims, claimFilter) ;
+			var filter = Builders<TUser>.Filter.Or(fBuilder.ElemMatch(x => x.Claims, claimFilter),
+												   fBuilder.ElemMatch(x => x.Roles, roleClaimFilter));
 
 			return await DatabaseContext.Users.Find(filter).ToListAsync(cancellationToken);
 		}
@@ -810,11 +807,11 @@ namespace AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual async Task<TUser> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
+			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
-
-			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, normalizedEmail);
+			
+			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, Normalize(normalizedEmail));
 
 			return await DatabaseContext.Users.Find(filter).FirstOrDefaultAsync(cancellationToken);
 		}
@@ -833,7 +830,7 @@ namespace AspNet.Identity3.MongoDB
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			return Task.FromResult(user.NormalizedEmail);
+			return Task.FromResult(user.NormalizedEmail ?? Normalize(user.Email));
 		}
 
 		/// <summary>
@@ -849,7 +846,7 @@ namespace AspNet.Identity3.MongoDB
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
-			user.NormalizedEmail = normalizedEmail;
+			user.NormalizedEmail = Normalize(normalizedEmail);
 			return Task.FromResult(0);
 		}
 
@@ -1092,7 +1089,9 @@ namespace AspNet.Identity3.MongoDB
 		#region IQueryableUserStore<TUser>
 
 		/// <summary>
-		/// WARNING: awaiting the mongoDB csharp driver to implement AsQueryable https://jira.mongodb.org/browse/CSHARP-935. In the mean time using ToList of the repos (http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc).
+		/// WARNING: awaiting the mongoDB csharp driver to implement AsQueryable https://jira.mongodb.org/browse/CSHARP-935. 
+		/// In the mean time using ToList of the repos (http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc).
+		/// 
 		/// Returns an <see cref="IQueryable{T}"/> collection of users.
 		/// </summary>
 		/// <value>An <see cref="IQueryable{T}"/> collection of users.</value>
@@ -1100,10 +1099,7 @@ namespace AspNet.Identity3.MongoDB
 		{
 			get
 			{
-				// TODO: This is really rubbish
-				//		awaiting the mongoDB csharp driver to implement AsQueryable
-				//		https://jira.mongodb.org/browse/CSHARP-935
-				//		Temporary list solution from http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc
+				// TODO: This is really rubbish way of doing IQueryable
 				ThrowIfDisposed();
 				var filter = Builders<TUser>.Filter.Ne(x => x.Id, default(TKey));
 				var list = DatabaseContext.Users.Find(filter).ToListAsync().Result;
@@ -1138,7 +1134,7 @@ namespace AspNet.Identity3.MongoDB
 
 		#endregion
 
-		#region PROTECTED HELPER METHODS
+		#region HELPER METHODS
 
 		/// <summary>
 		/// User userNames are distinct, and should never have two users with the same name
@@ -1204,6 +1200,28 @@ namespace AspNet.Identity3.MongoDB
 		protected virtual void EnsureRolesNotNull(TUser user)
 		{
 			if (user.Roles == null) user.Roles = new List<TRole>().Cast<IdentityRole<TKey>>().ToList();
+		}
+		
+		/// <summary>
+		/// Configure any default settings for the user (Default fills in missing NormalizedEmail and NormalizedUserName from Email and UserName)
+		/// </summary>
+		/// <returns></returns>
+		protected virtual void ConfigureDefaults(TUser user)
+		{
+			if (string.IsNullOrWhiteSpace(user.NormalizedUserName) || !user.NormalizedUserName.Equals(user.UserName, StringComparison.OrdinalIgnoreCase)) user.NormalizedUserName = Normalize(user.UserName);
+			if (string.IsNullOrWhiteSpace(user.NormalizedEmail) || !user.NormalizedEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase)) user.NormalizedEmail = Normalize(user.Email);
+		}
+
+
+		/// <summary>
+		/// Used to ensure consistent formatting of normalized string values. Uses the ILookupNormalizer if its supplied, otherwise converts strings to lowercase and trims;
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		protected virtual string Normalize(string str)
+		{
+			if (string.IsNullOrWhiteSpace(str)) return str;
+			return Normalizer == null ? str.ToLower().Trim() : Normalizer.Normalize(str);
 		}
 
 		#endregion

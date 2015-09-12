@@ -1,10 +1,10 @@
 {
 	"version": "1.0.0-*",
 	"description": "AspNet.Identity3.MongoDB.Tests test project",
-	"authors": [ "saan800" ],
+	"authors": [ "SaanSoft" ],
 	"tags": [ "" ],
-	"projectUrl": "",
-	"licenseUrl": "",
+	"projectUrl": "https://github.com/saan800/AspNet.Identity3.MongoDB.git",
+	"licenseUrl": "http://www.apache.org/licenses/",
 
 	"dependencies": {
 		"Microsoft.Framework.Configuration.Json": "1.0.0-*",

@@ -2,9 +2,10 @@
 	"version": "1.0.0-beta6-*",
 	"description": "AspNet.Identity3.MongoDB Class Library",
 	"authors": [ "SaanSoft" ],
-	"tags": [ "" ],
-	"projectUrl": "",
-	"licenseUrl": "",
+	"tags": [ "Microsoft.AspNet.Identity, MongoDB" ],
+	"projectUrl": "https://github.com/saan800/AspNet.Identity3.MongoDB.git",
+	"licenseUrl": "http://www.apache.org/licenses/",
+
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/saan800/AspNet.Identity3.MongoDB.git"
@@ -16,10 +17,6 @@
 	},
 
 	"frameworks": {
-		"dnx451": {
-			"frameworkAssemblies": {
-				"System.Threading.Tasks": ""
-			}
-		}
+		"dnx451": { }
 	}
 }

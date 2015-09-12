@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace AspNet.Identity3.MongoDB
@@ -16,9 +14,7 @@ namespace AspNet.Identity3.MongoDB
 		where TUser : IdentityUser<string>
 		where TRole : IdentityRole<string>
 	{
-		public RoleStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext) : base(databaseContext, null) { }
-
-		public RoleStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, IdentityErrorDescriber describer) : base(databaseContext, describer) { }
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null) : base(databaseContext, normalizer, describer) { }
 	}
 
 	public class RoleStore<TUser, TRole, TKey> :
@@ -29,18 +25,19 @@ namespace AspNet.Identity3.MongoDB
 		where TKey : IEquatable<TKey>
 	{
 
-		public RoleStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext) : this(databaseContext, null) { }
-
-		public RoleStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, IdentityErrorDescriber describer)
+		public RoleStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null)
 		{
 			if (databaseContext == null) throw new ArgumentNullException(nameof(databaseContext));
 
 			DatabaseContext = databaseContext;
+			Normalizer = normalizer;
 			ErrorDescriber = describer ?? new IdentityErrorDescriber();
 		}
 
 
 		protected IdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
+
+		protected ILookupNormalizer Normalizer { get; set; }
 
 		/// <summary>
 		/// Used to generate public API error messages
@@ -57,8 +54,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
 		public virtual async Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
+
+			ConfigureDefaults(role);
 			if (await RoleDetailsAlreadyExists(role, cancellationToken)) return IdentityResult.Failed(ErrorDescriber.DuplicateRoleName(role.ToString()));
 
 			try
@@ -81,10 +81,13 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
 		public virtual async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
+
+			ConfigureDefaults(role);
 			if (await RoleDetailsAlreadyExists(role, cancellationToken)) return IdentityResult.Failed(ErrorDescriber.DuplicateRoleName(role.ToString()));
-			
+
 			var filter = Builders<TRole>.Filter.Eq(x => x.Id, role.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true};
 			await DatabaseContext.Roles.ReplaceOneAsync(filter, role, updateOptions, cancellationToken);
@@ -103,6 +106,7 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
 		public virtual async Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
 
@@ -156,8 +160,9 @@ namespace AspNet.Identity3.MongoDB
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
+			ConfigureDefaults(role);
 
-			return Task.FromResult(role.NormalizedName);
+			return Task.FromResult(role.NormalizedName ?? Normalize(role.Name));
 		}
 
 		/// <summary>
@@ -168,6 +173,7 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
 		public virtual Task<TRole> FindByIdAsync(string roleId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			TKey id = ConvertIdFromString(roleId);
 			if (id == null) return Task.FromResult((TRole)null);
@@ -186,11 +192,11 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
 		public virtual Task<TRole> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
-
 			if (string.IsNullOrWhiteSpace(normalizedRoleName)) return Task.FromResult((TRole)null);
-
-			var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName);
+			
+			var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, Normalize(normalizedRoleName));
 			var options = new FindOptions { AllowPartialResults = false };
 
 			return DatabaseContext.Roles.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
@@ -226,7 +232,7 @@ namespace AspNet.Identity3.MongoDB
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
 
-			role.NormalizedName = normalizedName;
+			role.NormalizedName = Normalize(normalizedName);
 			return Task.FromResult(0);
 		}
 
@@ -247,8 +253,9 @@ namespace AspNet.Identity3.MongoDB
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
+			EnsureClaimsNotNull(role);
 
-			IList<Claim> result = role.Claims == null ? new List<Claim>() : role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
+			IList<Claim> result = role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 			return Task.FromResult(result);
 		}
 
@@ -261,17 +268,17 @@ namespace AspNet.Identity3.MongoDB
 		/// <returns>The task object representing the asynchronous operation.</returns>
 		public virtual async Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
-			
-			if (role.Claims == null) role.Claims = new List<IdentityClaim>();
-			
-			// claim and value already exist - just return
-			if (role.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value)) return;
-			
+			EnsureClaimsNotNull(role);
+
+			// claim already exist - just return
+			var c = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value };
+			if (role.Claims.Any(x => x.Equals(c))) return;
+
 			// new claim for the role
-			var c = new IdentityClaim {ClaimType = claim.Type, ClaimValue = claim.Value};
 			role.Claims.Add(c);
 
 			// update role claims in the database
@@ -294,20 +301,21 @@ namespace AspNet.Identity3.MongoDB
 			ThrowIfDisposed();
 			if (role == null) throw new ArgumentNullException(nameof(role));
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
+			EnsureClaimsNotNull(role);
 
-			if (role.Claims == null)
+			var c = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value};
+			if (role.Claims.Any(x => x.Equals(c)))
 			{
-				role.Claims = new List<IdentityClaim>();
-				return;
-			}
+				// need actual claim object with correct casing to remove from mongo
+				var existingClaims = role.Claims.Where(x => x.Equals(c)).ToList();
 
-			if (role.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value))
-			{
-				// remove claim from role
-				var c = role.Claims.Single(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value);
-				role.Claims.Remove(c);
+				// remove claim(s) from role
+				foreach (var ec in existingClaims)
+				{
+					role.Claims.Remove(ec);
+				}
 
-				var update = Builders<TRole>.Update.Pull(x => x.Claims, c);
+				var update = Builders<TRole>.Update.PullAll(x => x.Claims, existingClaims);
 				await DoRoleDetailsUpdate(role.Id, update, null, cancellationToken);
 				
 				// update users with this role
@@ -328,7 +336,7 @@ namespace AspNet.Identity3.MongoDB
 		{
 			get
 			{
-				// TODO: This is really rubbish
+				// TODO: This is really rubbish way of doing IQueryable
 				//		awaiting the mongoDB csharp driver to implement AsQueryable
 				//		https://jira.mongodb.org/browse/CSHARP-935
 				//		Temporary list solution from http://stackoverflow.com/questions/29124995/is-asqueryable-method-departed-in-new-mongodb-c-sharp-driver-2-0rc
@@ -366,59 +374,8 @@ namespace AspNet.Identity3.MongoDB
 
 		#endregion
 
-		#region PROTECTED HELPER METHODS
-
-		/// <summary>
-		/// Role names are distinct, and should never have two roles with the same name
-		/// </summary>
-		/// <remarks>
-		/// Can override to have different "distinct role details" implementation if necessary.
-		/// </remarks>
-		/// <param name="role"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		protected virtual async Task<bool> RoleDetailsAlreadyExists(TRole role, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			// if the result does exist, make sure its not for the same role object (ie same name, but different Ids)
-			var fBuilder = Builders<TRole>.Filter;
-			var filter = fBuilder.Ne(x => x.Id, role.Id) & fBuilder.Eq(x => x.Name, role.Name);
-
-			var result = await DatabaseContext.Roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
-			return result != null;
-		}
-
-		protected virtual TKey ConvertIdFromString(string id)
-		{
-			if (string.IsNullOrWhiteSpace(id))
-			{
-				return default(TKey);
-			}
-			return (TKey)TypeDescriptor.GetConverter(typeof(TKey)).ConvertFromInvariantString(id);
-		}
-
-		protected virtual string ConvertIdToString(TKey id)
-		{
-			if (id == null || id.Equals(default(TKey)))
-			{
-				return null;
-			}
-			return id.ToString();
-		}
-
-		/// <summary>
-		/// update sub-set of role details in database
-		/// </summary>
-		/// <param name="roleId"></param>
-		/// <param name="update"></param>
-		/// <param name="options"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		protected virtual async Task<UpdateResult> DoRoleDetailsUpdate(TKey roleId, UpdateDefinition<TRole> update, UpdateOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			var filter = Builders<TRole>.Filter.Eq(x => x.Id, roleId);
-			return await DatabaseContext.Roles.UpdateOneAsync(filter, update, options, cancellationToken);
-		}
-
+		#region keep user roles in sync with role changes
+		
 		protected virtual async Task UpdateRoleOnUsers(TRole role, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var roleFilter = Builders<IdentityRole<TKey>>.Filter.Eq(x => x.Id, role.Id);
@@ -439,6 +396,86 @@ namespace AspNet.Identity3.MongoDB
 			var options = new UpdateOptions { IsUpsert = false };
 
 			return await DatabaseContext.Users.UpdateManyAsync(userFilter, update, options, cancellationToken);
+		}
+
+		#endregion
+
+		#region HELPER METHODS
+
+		/// <summary>
+		/// Role names are distinct, and should never have two roles with the same name (case insensitive match)
+		/// </summary>
+		/// <remarks>
+		/// Can override to have different "distinct role details" implementation if necessary.
+		/// </remarks>
+		/// <param name="role"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		protected virtual async Task<bool> RoleDetailsAlreadyExists(TRole role, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			// if the result does exist, make sure its not for the same role object (ie same name, but different Ids)
+			var fBuilder = Builders<TRole>.Filter;
+			var filter = fBuilder.Ne(x => x.Id, role.Id) & fBuilder.Regex(x => x.NormalizedName, Normalize(role.NormalizedName));
+
+			var result = await DatabaseContext.Roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
+			return result != null;
+		}
+
+		/// <summary>
+		/// update sub-set of role details in database
+		/// </summary>
+		/// <param name="roleId"></param>
+		/// <param name="update"></param>
+		/// <param name="options"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		protected virtual async Task<UpdateResult> DoRoleDetailsUpdate(TKey roleId, UpdateDefinition<TRole> update, UpdateOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var filter = Builders<TRole>.Filter.Eq(x => x.Id, roleId);
+			return await DatabaseContext.Roles.UpdateOneAsync(filter, update, options, cancellationToken);
+		}
+		
+		/// <summary>
+		/// Configure any default settings for the role (Default fills in missing NormalizedName Name)
+		/// </summary>
+		/// <returns></returns>
+		protected virtual void ConfigureDefaults(TRole role)
+		{
+			if (string.IsNullOrWhiteSpace(role.NormalizedName) || !role.NormalizedName.Equals(role.Name)) role.NormalizedName = Normalize(role.Name);
+		}
+		
+		/// <summary>
+		/// Used to ensure consistent formatting of normalized string values. Uses the ILookupNormalizer if its supplied, otherwise converts strings to lowercase and trims;
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		protected virtual string Normalize(string str)
+		{
+			if (string.IsNullOrWhiteSpace(str)) return str;
+			return Normalizer == null ? str.ToLower().Trim() : Normalizer.Normalize(str);
+		}
+		
+		protected virtual void EnsureClaimsNotNull(TRole role)
+		{
+			if (role.Claims == null) role.Claims = new List<IdentityClaim>();
+		}
+
+		protected virtual TKey ConvertIdFromString(string id)
+		{
+			if (string.IsNullOrWhiteSpace(id))
+			{
+				return default(TKey);
+			}
+			return (TKey)TypeDescriptor.GetConverter(typeof(TKey)).ConvertFromInvariantString(id);
+		}
+
+		protected virtual string ConvertIdToString(TKey id)
+		{
+			if (id == null || id.Equals(default(TKey)))
+			{
+				return null;
+			}
+			return id.ToString();
 		}
 
 		#endregion

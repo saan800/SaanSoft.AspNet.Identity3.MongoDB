@@ -52,7 +52,12 @@ namespace AspNet.Identity3.MongoDB
 		/// Role name
 		/// </summary>
 		public virtual string Name { get; set; }
-		
+
+		/// <summary>
+		/// NOTE: should not be used except when extending AspNet.Identity3.MongoDB. 
+		/// Value will be overridden by RoleStore.
+		/// Used to store the role name that is formatted in a case insensitive way so can do searches on it
+		/// </summary>
 		public virtual string NormalizedName { get; set; }
 
 		/// <summary>

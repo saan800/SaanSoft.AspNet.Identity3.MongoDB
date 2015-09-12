@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Claims;
 
 namespace AspNet.Identity3.MongoDB
 {
@@ -34,6 +35,13 @@ namespace AspNet.Identity3.MongoDB
 
 			return this.ClaimType.Equals(obj.ClaimType, StringComparison.OrdinalIgnoreCase) &&
 				   this.ClaimValue.Equals(obj.ClaimValue, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public virtual bool Equals(Claim obj)
+		{
+			if (obj == null) return false;
+
+			return this.Equals(new IdentityClaim {ClaimType = obj.Type, ClaimValue = obj.Value});
 		}
 
 		public static bool operator ==(IdentityClaim left, IdentityClaim right)

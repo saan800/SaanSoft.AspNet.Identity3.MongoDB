@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
-using MongoDB.Driver;
 using Xunit;
 
 namespace AspNet.Identity3.MongoDB.Tests
@@ -14,7 +13,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 		public RoleStoreInMemoryTests()
 		{
 			var databaseContext = new IdentityDatabaseContext();
-			// "mongodb://localhost:27017"
 			_roleStore = new RoleStore<IdentityUser, IdentityRole>(databaseContext);
 		}
 
@@ -23,9 +21,8 @@ namespace AspNet.Identity3.MongoDB.Tests
 			[Fact]
 			public void Constructors_throw_ArgumentNullException_with_null()
 			{
-
 				Assert.Throws<ArgumentNullException>("databaseContext", () => new RoleStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null));
-				Assert.Throws<ArgumentNullException>("databaseContext", () => new RoleStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null, new IdentityErrorDescriber()));
+				Assert.Throws<ArgumentNullException>("databaseContext", () => new RoleStore<IdentityUser, IdentityRole>((IdentityDatabaseContext)null, null, new IdentityErrorDescriber()));
 			}
 
 			[Fact]
@@ -119,14 +116,38 @@ namespace AspNet.Identity3.MongoDB.Tests
 			{
 				// arrange
 				var role = new IdentityRole(roleName);
-				role.NormalizedName = roleName;
 
 				// act
 				var result = await _roleStore.GetNormalizedRoleNameAsync(role);
 
 				// assert
-				Assert.Equal(role.Name, result);
-				Assert.Equal(roleName, result);
+				if (string.IsNullOrWhiteSpace(roleName))
+				{
+					Assert.Equal(role.Name, result);
+				}
+				else
+				{	
+					Assert.Equal(roleName.ToLower(), result);
+				}
+			}
+		}
+
+		public class SetNormalizedRoleNameAsyncMethod : RoleStoreInMemoryTests
+		{
+			[Theory]
+			[InlineData(null)]
+			[InlineData("")]
+			[InlineData("normalised name value")]
+			public async Task Sets_role_normalisedName_to_supplied_value(string normalisedName)
+			{
+				// arrange
+				var role = new IdentityRole("Sets_role_normalisedName_to_supplied_value");
+
+				// act
+				await _roleStore.SetNormalizedRoleNameAsync(role, normalisedName); 
+
+				// assert
+				Assert.Equal(normalisedName, role.NormalizedName);
 			}
 		}
 
@@ -176,25 +197,6 @@ namespace AspNet.Identity3.MongoDB.Tests
 
 				// assert
 				Assert.Equal(roleName, role.Name);
-			}
-		}
-
-		public class SetNormalizedRoleNameAsyncMethod : RoleStoreInMemoryTests
-		{
-			[Theory]
-			[InlineData(null)]
-			[InlineData("")]
-			[InlineData("normalised name value")]
-			public async Task Sets_role_normalisedName_to_supplied_value(string normalisedName)
-			{
-				// arrange
-				var role = new IdentityRole("Sets_role_normalisedName_to_supplied_value");
-
-				// act
-				await _roleStore.SetNormalizedRoleNameAsync(role, normalisedName);
-
-				// assert
-				Assert.Equal(normalisedName, role.NormalizedName);
 			}
 		}
 
