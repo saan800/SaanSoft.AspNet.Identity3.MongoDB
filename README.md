@@ -12,11 +12,11 @@ when instantiating the RoleStore and UserStore.
 The default Mongo details are:
 
 * Database Name: AspNetIdentity
-* Role Collection Name: AspNetRoles
 * User Collection Name: AspNetUsers
+* Role Collection Name: AspNetRoles
 
 ## Sample MVC website
-Under the code "samples" folder, have updated the standard Asp.Net MVC 6 sample site to use AspNet.Identity3.MongoDB instead of the EntityFramework collection.
+Under the code "samples" folder, have updated the standard Asp.Net MVC 6 sample site to use AspNet.Identity3.MongoDB instead of the EntityFramework.
 
 Code changes are in:
 
@@ -28,6 +28,7 @@ Code changes are in:
 
 ## Still TODO
 
+* update to beta7
 * create nuget package
 * help documentation for setup and overriding
 * get mongoDB and tests running on AppVeyor
