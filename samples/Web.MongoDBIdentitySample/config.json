@@ -1,10 +1,10 @@
 {
   "AppSettings": {
-    "SiteTitle": "Web.MongoDBIdentitySample"
+	"SiteTitle": "Web.MongoDBIdentitySample"
   },
   "Data": {
-    "DefaultConnection": {
-      "ConnectionString": "Server=(localdb)\\mssqllocaldb;Database=aspnet5-Web.MongoDBIdentitySample-8bf6f101-3b41-4c78-bf62-8a4eb6c01bc7;Trusted_Connection=True;MultipleActiveResultSets=true"
-    }
+	"DefaultConnection": {
+	  "ConnectionString": "mongodb://localhost:27017"
+	}
   }
 }

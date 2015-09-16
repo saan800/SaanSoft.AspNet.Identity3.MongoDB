@@ -14,12 +14,20 @@ The default Mongo details are:
 * Database Name: AspNetIdentity
 * Role Collection Name: AspNetRoles
 * User Collection Name: AspNetUsers
-* Mongo Collection Settings: WriteConcern.WMajority
+
+## Sample MVC website
+Under the code "samples" folder, have updated the standard Asp.Net MVC 6 sample site to use AspNet.Identity3.MongoDB instead of the EntityFramework collection.
+
+Code changes are in:
+
+- config.json
+- Startup.cs
+- AccountViewModels.cs
+- AccountController.cs
 
 
 ## Still TODO
 
-* sample mvc 6 web implemenation
 * create nuget package
 * help documentation for setup and overriding
 * get mongoDB and tests running on AppVeyor

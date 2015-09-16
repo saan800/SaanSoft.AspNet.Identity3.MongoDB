@@ -27,7 +27,7 @@ namespace AspNet.Identity3.MongoDB.Tests
 			_databaseFixture = new DatabaseFixture(collectionPrefix);
 			_userCollection = _databaseFixture.GetCollection<IdentityUser>();
 			_roleCollection = _databaseFixture.GetCollection<IdentityRole>();
-			_databaseContext = new IdentityDatabaseContext { Users = _userCollection, Roles = _roleCollection };
+			_databaseContext = new IdentityDatabaseContext { UserCollection = _userCollection, RoleCollection = _roleCollection };
 
 			_userStore = new UserStore<IdentityUser, IdentityRole>(_databaseContext);
 			_roleStore = new RoleStore<IdentityUser, IdentityRole>(_databaseContext);

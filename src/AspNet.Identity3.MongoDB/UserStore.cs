@@ -14,7 +14,7 @@ namespace AspNet.Identity3.MongoDB
 		where TUser : IdentityUser<string>
 		where TRole : IdentityRole<string>
 	{
-		public UserStore(IdentityDatabaseContext<TUser, TRole, string> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null) : base(databaseContext, normalizer, describer) { }
+		public UserStore(IIdentityDatabaseContext<TUser, TRole, string> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null) : base(databaseContext, normalizer, describer) { }
 	}
 
 	public class UserStore<TUser, TRole, TKey> :
@@ -32,7 +32,7 @@ namespace AspNet.Identity3.MongoDB
 		where TRole : IdentityRole<TKey>
 		where TKey : IEquatable<TKey>
 	{
-		public UserStore(IdentityDatabaseContext<TUser, TRole, TKey> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null)
+		public UserStore(IIdentityDatabaseContext<TUser, TRole, TKey> databaseContext, ILookupNormalizer normalizer = null, IdentityErrorDescriber describer = null)
 		{
 			if (databaseContext == null) throw new ArgumentNullException(nameof(databaseContext));
 
@@ -41,7 +41,7 @@ namespace AspNet.Identity3.MongoDB
 			ErrorDescriber = describer ?? new IdentityErrorDescriber();
 		}
 		
-		protected IdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
+		protected IIdentityDatabaseContext<TUser, TRole, TKey> DatabaseContext { get; set; }
 		
 		protected ILookupNormalizer Normalizer { get; set; }
 
@@ -147,7 +147,7 @@ namespace AspNet.Identity3.MongoDB
 			try
 			{
 				ConfigureDefaults(user);
-				await DatabaseContext.Users.InsertOneAsync(user, cancellationToken);
+				await DatabaseContext.UserCollection.InsertOneAsync(user, cancellationToken);
 			}
 			catch (MongoWriteException)
 			{
@@ -173,7 +173,7 @@ namespace AspNet.Identity3.MongoDB
 
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, user.Id);
 			var updateOptions = new UpdateOptions { IsUpsert = true };
-			await DatabaseContext.Users.ReplaceOneAsync(filter, user, updateOptions, cancellationToken);
+			await DatabaseContext.UserCollection.ReplaceOneAsync(filter, user, updateOptions, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -191,7 +191,7 @@ namespace AspNet.Identity3.MongoDB
 			if (user == null) throw new ArgumentNullException(nameof(user));
 
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, user.Id);
-			await DatabaseContext.Users.DeleteOneAsync(filter, cancellationToken);
+			await DatabaseContext.UserCollection.DeleteOneAsync(filter, cancellationToken);
 
 			return IdentityResult.Success;
 		}
@@ -214,7 +214,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, id);
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return DatabaseContext.Users.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.UserCollection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -235,7 +235,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, Normalize(normalizedUserName));
 			var options = new FindOptions { AllowPartialResults = false };
 
-			return DatabaseContext.Users.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
+			return DatabaseContext.UserCollection.Find(filter, options).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		#endregion
@@ -348,7 +348,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.ElemMatch(x => x.Logins, loginFilter);
 
-			return await DatabaseContext.Users.Find(filter).SingleOrDefaultAsync(cancellationToken);
+			return await DatabaseContext.UserCollection.Find(filter).SingleOrDefaultAsync(cancellationToken);
 		}
 
 		#endregion
@@ -372,7 +372,7 @@ namespace AspNet.Identity3.MongoDB
 
 			// get role details
 			var roleFilter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, Normalize(normalizedRoleName));
-			var role = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
+			var role = await DatabaseContext.RoleCollection.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
 
 			if (role == null)
 			{
@@ -422,7 +422,7 @@ namespace AspNet.Identity3.MongoDB
 			
 			
 			var roleFilter = Builders<TRole>.Filter.Regex(x => x.NormalizedName, Normalize(normalizedRoleName));
-			var roleFromDb = await DatabaseContext.Roles.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
+			var roleFromDb = await DatabaseContext.RoleCollection.Find(roleFilter).SingleOrDefaultAsync(cancellationToken);
 			if (roleFromDb != null)
 			{
 				user.Roles.Remove(roleFromDb);
@@ -491,7 +491,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.ElemMatch(x => x.Roles, roleFilter);
 
-			return await DatabaseContext.Users.Find(filter).ToListAsync(cancellationToken);
+			return await DatabaseContext.UserCollection.Find(filter).ToListAsync(cancellationToken);
 		}
 
 		#endregion
@@ -630,7 +630,7 @@ namespace AspNet.Identity3.MongoDB
 			var filter = Builders<TUser>.Filter.Or(fBuilder.ElemMatch(x => x.Claims, claimFilter),
 												   fBuilder.ElemMatch(x => x.Roles, roleClaimFilter));
 
-			return await DatabaseContext.Users.Find(filter).ToListAsync(cancellationToken);
+			return await DatabaseContext.UserCollection.Find(filter).ToListAsync(cancellationToken);
 		}
 
 		#endregion
@@ -813,7 +813,7 @@ namespace AspNet.Identity3.MongoDB
 			
 			var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, Normalize(normalizedEmail));
 
-			return await DatabaseContext.Users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+			return await DatabaseContext.UserCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 		}
 
 		/// <summary>
@@ -1102,7 +1102,7 @@ namespace AspNet.Identity3.MongoDB
 				// TODO: This is really rubbish way of doing IQueryable
 				ThrowIfDisposed();
 				var filter = Builders<TUser>.Filter.Ne(x => x.Id, default(TKey));
-				var list = DatabaseContext.Users.Find(filter).ToListAsync().Result;
+				var list = DatabaseContext.UserCollection.Find(filter).ToListAsync().Result;
 
 				return list.AsQueryable();
 			}
@@ -1151,7 +1151,7 @@ namespace AspNet.Identity3.MongoDB
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.Ne(x => x.Id, user.Id) & fBuilder.Eq(x => x.UserName, user.UserName);
 
-			var result = await DatabaseContext.Users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+			var result = await DatabaseContext.UserCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 			return result != null;
 		}
 
@@ -1184,7 +1184,7 @@ namespace AspNet.Identity3.MongoDB
 		protected virtual Task<UpdateResult> DoUserDetailsUpdate(TKey userId, UpdateDefinition<TUser> update, UpdateOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
-			return DatabaseContext.Users.UpdateOneAsync(filter, update, options, cancellationToken);
+			return DatabaseContext.UserCollection.UpdateOneAsync(filter, update, options, cancellationToken);
 		}
 
 		protected virtual void EnsureLoginsNotNull(TUser user)

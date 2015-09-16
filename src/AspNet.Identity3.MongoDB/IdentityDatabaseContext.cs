@@ -5,25 +5,33 @@ using MongoDB.Driver;
 
 namespace AspNet.Identity3.MongoDB
 {
+	public interface IIdentityDatabaseContext<TUser, TRole, TKey>
+		where TRole : IdentityRole<TKey>
+		where TUser : IdentityUser<TKey>
+		where TKey : IEquatable<TKey>
+	{
+		IMongoCollection<TUser> UserCollection { get; set; }
+		IMongoCollection<TRole> RoleCollection { get; set; }
+	}
+
 	public class IdentityDatabaseContext : IdentityDatabaseContext<IdentityUser, IdentityRole, string>
 	{
 	}
 
-	public class IdentityDatabaseContext<TUser, TRole, TKey>
+	public class IdentityDatabaseContext<TUser, TRole, TKey> : IIdentityDatabaseContext<TUser, TRole, TKey>
 		where TRole : IdentityRole<TKey>
 		where TUser : IdentityUser<TKey>
 		where TKey : IEquatable<TKey>
 	{
 		public string ConnectionString { get; set; }
-
 		public string DatabaseName { get; set; } = "AspNetIdentity";
-		public string UsersCollectionName { get; set; } = "AspNetUsers";
-		public string RolesCollectionName { get; set; } = "AspNetRoles";
-
+		public string UserCollectionName { get; set; } = "AspNetUsers";
+		public string RoleCollectionName { get; set; } = "AspNetRoles";
+		
 		/// <summary>
-		/// When the <see cref="Users"/> and <see cref="Roles"/> collections are initially fetched - ensure the indexes are created (default: false)
+		/// When the <see cref="UserCollection"/> and <see cref="RoleCollection"/> collections are initially fetched - ensure the indexes are created (default: false)
 		/// </summary>
-		public bool CreateCollectionIndexes { get; set; } = false;
+		public bool EnsureCollectionIndexes { get; set; } = false;
 
 		public MongoCollectionSettings CollectionSettings { get; set; } = new MongoCollectionSettings { WriteConcern = WriteConcern.WMajority };
 		public CreateCollectionOptions CreateCollectionOptions { get; set; } = new CreateCollectionOptions { AutoIndexId = true };
@@ -73,61 +81,59 @@ namespace AspNet.Identity3.MongoDB
 
 
 		/// <summary>
-		/// Initiates the user collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureUserIndexesCreated"/>
+		/// Initiates the user collection. If <see cref="EnsureCollectionIndexes"/> == true, will call <see cref="EnsureUserIndexesCreated"/>
 		/// </summary>
-		public virtual IMongoCollection<TUser> Users
+		public virtual IMongoCollection<TUser> UserCollection
 		{
 			get
 			{
-				if (_users == null)
+				if (_userCollection == null)
 				{
-					if (string.IsNullOrWhiteSpace(UsersCollectionName))
+					if (string.IsNullOrWhiteSpace(UserCollectionName))
 					{
-						throw new NullReferenceException($"The parameter '{nameof(UsersCollectionName)}' in '{typeof (IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(Users)}'. This is usually configured as part of Startup.cs");
+						throw new NullReferenceException($"The parameter '{nameof(UserCollectionName)}' in '{typeof (IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(UserCollection)}'. This is usually configured as part of Startup.cs");
 					}
-					if (CreateCollectionIndexes)
+					if (EnsureCollectionIndexes)
 					{
 						EnsureUserIndexesCreated();
 					}
 
-					_users = Database.GetCollection<TUser>(UsersCollectionName, CollectionSettings);
+					_userCollection = Database.GetCollection<TUser>(UserCollectionName, CollectionSettings);
 				}
-				return _users;
+				return _userCollection;
 			}
-			set { _users = value; }
+			set { _userCollection = value; }
 		}
-		private IMongoCollection<TUser> _users;
+		private IMongoCollection<TUser> _userCollection;
 
 
 		/// <summary>
-		/// Initiates the role collection. If <see cref="CreateCollectionIndexes"/> == true, will call <see cref="EnsureRoleIndexesCreated"/>
+		/// Initiates the role collection. If <see cref="EnsureCollectionIndexes"/> == true, will call <see cref="EnsureRoleIndexesCreated"/>
 		/// </summary>
-		public virtual IMongoCollection<TRole> Roles
+		public virtual IMongoCollection<TRole> RoleCollection
 		{
 			get
 			{
-				if (_roles == null)
+				if (_roleCollection == null)
 				{
-					if (string.IsNullOrWhiteSpace(RolesCollectionName))
+					if (string.IsNullOrWhiteSpace(RoleCollectionName))
 					{
-						throw new NullReferenceException($"The parameter '{nameof(RolesCollectionName)}' in '{typeof(IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(Roles)}'. This is usually configured as part of Startup.cs");
+						throw new NullReferenceException($"The parameter '{nameof(RoleCollectionName)}' in '{typeof(IdentityDatabaseContext<TUser, TRole, TKey>).FullName}' is null and must be set before calling '{nameof(RoleCollection)}'. This is usually configured as part of Startup.cs");
 					}
-					if (CreateCollectionIndexes)
+					if (EnsureCollectionIndexes)
 					{
 						EnsureRoleIndexesCreated();
 					}
-					_roles = Database.GetCollection<TRole>(RolesCollectionName, CollectionSettings);
+					_roleCollection = Database.GetCollection<TRole>(RoleCollectionName, CollectionSettings);
 				}
-				return _roles;
+				return _roleCollection;
 			}
-			set { _roles = value; }
+			set { _roleCollection = value; }
 		}
-		private IMongoCollection<TRole> _roles;
-
-
-
+		private IMongoCollection<TRole> _roleCollection;
+		
 		/// <summary>
-		/// Ensures the user collection is instantiated, and has the standard indexes applied. Called when <see cref="Users"/> is called if <see cref="CreateCollectionIndexes"/> == true.
+		/// Ensures the user collection is instantiated, and has the standard indexes applied. Called when <see cref="UserCollection"/> is called if <see cref="EnsureCollectionIndexes"/> == true.
 		/// </summary>
 		/// <remarks>
 		/// Indexes Created:
@@ -135,37 +141,45 @@ namespace AspNet.Identity3.MongoDB
 		/// </remarks>
 		public virtual void EnsureUserIndexesCreated()
 		{
+			// only check on app startup
+			if (_doneUserIndexes) return;
+			_doneUserIndexes = true;
+
 			// ensure collection exists
-			if (!CollectionExists(UsersCollectionName))
+			if (!CollectionExists(UserCollectionName))
 			{
-				Database.CreateCollectionAsync(UsersCollectionName, CreateCollectionOptions).Wait();
+				Database.CreateCollectionAsync(UserCollectionName, CreateCollectionOptions).Wait();
 			}
 
 			// ensure NormalizedUserName index exists
 			var normalizedNameIndex = Builders<TUser>.IndexKeys.Ascending(x => x.NormalizedUserName);
-			Users.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
+			UserCollection.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
 
 			// ensure NormalizedEmail index exists
 			var normalizedEmailIndex = Builders<TUser>.IndexKeys.Ascending(x => x.NormalizedEmail);
-			Users.Indexes.CreateOneAsync(normalizedEmailIndex, CreateIndexOptions);
+			UserCollection.Indexes.CreateOneAsync(normalizedEmailIndex, CreateIndexOptions);
 			
 			// ensure Roles.NormalizedName index exists
 			var roleNameIndex = Builders<TUser>.IndexKeys.Ascending("Roles_NormalizedName");
-			Users.Indexes.CreateOneAsync(roleNameIndex, CreateIndexOptions);
+			UserCollection.Indexes.CreateOneAsync(roleNameIndex, CreateIndexOptions);
 
 			// ensure LoginProvider index exists
 			var loginProviderIndex = Builders<TUser>.IndexKeys.Ascending("Logins_LoginProvider");
-			Users.Indexes.CreateOneAsync(loginProviderIndex, CreateIndexOptions);
+			UserCollection.Indexes.CreateOneAsync(loginProviderIndex, CreateIndexOptions);
 
 			// ensure claims index exists
 			var claimsProviderIndex = Builders<TUser>.IndexKeys.Ascending("Claims_ClaimType").Ascending("Roles_Claims_ClaimType");
-			Users.Indexes.CreateOneAsync(claimsProviderIndex, CreateIndexOptions);
+			UserCollection.Indexes.CreateOneAsync(claimsProviderIndex, CreateIndexOptions);
 		}
 
-
+		/// <summary>
+		/// Singleton property. Only want to check collection indexes are done once, not on every call
+		/// </summary>
+		protected static bool _doneUserIndexes = false;
+		protected static bool _doneRoleIndexes = false;
 
 		/// <summary>
-		/// Ensures the role collection is instantiated, and has the standard indexes applied. Called when <see cref="Roles"/> is called if <see cref="CreateCollectionIndexes"/> == true.
+		/// Ensures the role collection is instantiated, and has the standard indexes applied. Called when <see cref="RoleCollection"/> is called if <see cref="EnsureCollectionIndexes"/> == true.
 		/// </summary>
 		/// <remarks>
 		/// Indexes Created:
@@ -173,15 +187,19 @@ namespace AspNet.Identity3.MongoDB
 		/// </remarks>
 		public virtual void EnsureRoleIndexesCreated()
 		{
+			// only check on app startup
+			if (_doneRoleIndexes) return;
+			_doneRoleIndexes = true;
+
 			// ensure collection exists
-			if (!CollectionExists(RolesCollectionName))
+			if (!CollectionExists(RoleCollectionName))
 			{
-				Database.CreateCollectionAsync(RolesCollectionName, CreateCollectionOptions).Wait();
+				Database.CreateCollectionAsync(RoleCollectionName, CreateCollectionOptions).Wait();
 			}
 
 			// ensure NormalizedName index exists
 			var normalizedNameIndex = Builders<TRole>.IndexKeys.Ascending(x => x.NormalizedName);
-			Roles.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
+			RoleCollection.Indexes.CreateOneAsync(normalizedNameIndex, CreateIndexOptions);
 		}
 
 		/// <summary>
@@ -189,7 +207,7 @@ namespace AspNet.Identity3.MongoDB
 		/// </summary>
 		public virtual void DeleteUserCollection()
 		{
-			Database.DropCollectionAsync(UsersCollectionName).Wait();
+			Database.DropCollectionAsync(UserCollectionName).Wait();
 		}
 
 		/// <summary>
@@ -197,10 +215,9 @@ namespace AspNet.Identity3.MongoDB
 		/// </summary>
 		public virtual void DeleteRoleCollection()
 		{
-			Database.DropCollectionAsync(RolesCollectionName).Wait();
+			Database.DropCollectionAsync(RoleCollectionName).Wait();
 		}
-
-
+		
 		/// <summary>
 		/// check if the collection already exists
 		/// </summary>

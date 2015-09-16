@@ -12,8 +12,9 @@
 	},
 
 	"dependencies": {
-		"Microsoft.AspNet.Identity": "3.0.0-beta6-*",
-		"MongoDB.Driver": "[2.0.0,3.0)"
+		"Microsoft.AspNet.Identity": "3.0.0-beta6",
+		"Microsoft.Framework.DependencyInjection": "1.0.0-beta6",
+		"MongoDB.Driver": "(2.0.0,3.0.0]"
 	},
 
 	"frameworks": {
