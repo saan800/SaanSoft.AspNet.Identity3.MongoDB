@@ -1,4 +1,4 @@
-﻿using AspNet.Identity3.MongoDB;
+﻿using SaanSoft.AspNet.Identity3.MongoDB;
 
 namespace Web.MongoDBIdentitySample.Models
 {

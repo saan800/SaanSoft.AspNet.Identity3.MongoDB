@@ -25,7 +25,7 @@
 		"Microsoft.Framework.Logging": "1.0.0-beta7",
 		"Microsoft.Framework.Logging.Console": "1.0.0-beta7",
 		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-beta7",
-		"AspNet.Identity3.MongoDB": "1.0.0-*"
+		"SaanSoft.AspNet.Identity3.MongoDB": "1.0.0-*"
 	},
 
 	"commands": {
