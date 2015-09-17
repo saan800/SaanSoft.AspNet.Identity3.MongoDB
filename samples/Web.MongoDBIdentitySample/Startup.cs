@@ -12,8 +12,8 @@ using Microsoft.AspNet.Hosting;
 using Microsoft.Framework.Configuration;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
-using Microsoft.Framework.Runtime;
 using AspNet.Identity3.MongoDB;
+using Microsoft.Dnx.Runtime;
 using Web.MongoDBIdentitySample.Models;
 using Web.MongoDBIdentitySample.Services;
 

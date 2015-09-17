@@ -28,13 +28,18 @@ Code changes are in:
 
 ## Still TODO
 
-* update to beta7
 * create nuget package
 * help documentation for setup and overriding
 * get mongoDB and tests running on AppVeyor
 * Finish all tests
 * When queryable is implemented in mongodb driver (read Warning below), update UserStore and RoleStore implementations
 * dnxcore50 (read Frameworks below)
+
+From <http://stackoverflow.com/questions/27553952/when-is-asp-net-5-vnext-scheduled-for-release>
+
+* update to beta8 (end of Sept 2015)
+* update to RC (late autumn 2015)
+* update to release version
 
 
 ## Frameworks

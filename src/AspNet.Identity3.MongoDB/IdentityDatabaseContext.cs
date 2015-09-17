@@ -208,6 +208,7 @@ namespace AspNet.Identity3.MongoDB
 		public virtual void DeleteUserCollection()
 		{
 			Database.DropCollectionAsync(UserCollectionName).Wait();
+			_doneUserIndexes = false;
 		}
 
 		/// <summary>
@@ -216,6 +217,7 @@ namespace AspNet.Identity3.MongoDB
 		public virtual void DeleteRoleCollection()
 		{
 			Database.DropCollectionAsync(RoleCollectionName).Wait();
+			_doneRoleIndexes = false;
 		}
 		
 		/// <summary>
@@ -233,7 +235,6 @@ namespace AspNet.Identity3.MongoDB
 			cursor.Wait();
 
 			return cursor.Result.Any();
-
 		}
 	}
 }
