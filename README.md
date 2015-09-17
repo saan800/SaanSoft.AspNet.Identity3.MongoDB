@@ -4,6 +4,8 @@
 
 An implementation for MongoDB.Driver (>= v2.1.0) with ASP.NET 5 Identity (>= v3) framework at <https://github.com/aspnet/Identity>
 
+Nuget package at: <https://www.nuget.org/packages/SaanSoft.AspNet.Identity3.MongoDB>
+
 
 ## Default details
 SaanSoft.AspNet.Identity3.MongoDB follows the EntityFramework naming defaults where possible, but they can be overridden 
@@ -14,6 +16,7 @@ The default Mongo details are:
 * Database Name: AspNetIdentity
 * User Collection Name: AspNetUsers
 * Role Collection Name: AspNetRoles
+
 
 ## Sample MVC website
 Under the code "samples" folder, have updated the standard Asp.Net MVC 6 sample site to use SaanSoft.AspNet.Identity3.MongoDB instead of the EntityFramework.
@@ -28,7 +31,6 @@ Code changes are in:
 
 ## Still TODO
 
-* create nuget package
 * help documentation for setup and overriding
 * get mongoDB and tests running on AppVeyor
 * Finish all tests
@@ -47,6 +49,5 @@ Currently only available for dnx451
 
 Keeping an eye on these issues for mongoDB to be available in dnxcore50
 
-- <https://jira.mongodb.org/browse/CSHARP-1177>
-- <https://github.com/mongodb/mongo-csharp-driver/pull/210>
-
+* <https://jira.mongodb.org/browse/CSHARP-1177>
+* <https://github.com/mongodb/mongo-csharp-driver/pull/210>
