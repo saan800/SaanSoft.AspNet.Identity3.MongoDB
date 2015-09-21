@@ -8,6 +8,24 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 	/// </summary>
 	public class IdentityClaim : IEquatable<IdentityClaim>
 	{
+		public IdentityClaim()
+		{
+		}
+
+		public IdentityClaim(string type, string value)
+		{
+			this.ClaimType = type;
+			this.ClaimValue = value;
+		}
+
+		public IdentityClaim(Claim claim)
+		{
+			if (claim == null) return;
+
+			this.ClaimType = claim.Type;
+			this.ClaimValue = claim.Value;
+		}
+
 		/// <summary>
 		/// Claim type
 		/// </summary>
@@ -41,7 +59,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		{
 			if (obj == null) return false;
 
-			return this.Equals(new IdentityClaim {ClaimType = obj.Type, ClaimValue = obj.Value});
+			return this.Equals(new IdentityClaim(obj));
 		}
 
 		public static bool operator ==(IdentityClaim left, IdentityClaim right)

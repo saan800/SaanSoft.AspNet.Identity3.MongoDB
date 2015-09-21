@@ -533,7 +533,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			if (claims == null) return;
 
 			// find new claims
-			var newClaimsList = claims.Select(x => new IdentityClaim { ClaimType = x.Type, ClaimValue = x.Value })
+			var newClaimsList = claims.Select(x => new IdentityClaim(x))
 									  .Where(x => !user.Claims.Any(uc => uc.Equals(x))).ToList();
 			foreach (var c in newClaimsList)
 			{
@@ -565,7 +565,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			EnsureClaimsNotNull(user);
 
 
-			var matchedClaims = user.Claims.Where(uc=> uc.Equals(new IdentityClaim {ClaimType = claim.Type, ClaimValue = claim.Value})).ToList();
+			var matchedClaims = user.Claims.Where(uc=> uc.Equals(new IdentityClaim(claim))).ToList();
 			if (matchedClaims.Any())
 			{
 				foreach (var matchedClaim in matchedClaims)

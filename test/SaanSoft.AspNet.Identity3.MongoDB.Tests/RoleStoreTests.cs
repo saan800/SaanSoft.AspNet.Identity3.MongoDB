@@ -444,7 +444,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				// assert
 
 				// check role claims from memory
-				var identityClaim = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value};
+				var identityClaim = new IdentityClaim(claim);
 				IdentityClaimAssert.Equal(new List<IdentityClaim> {identityClaim}, role.Claims);
 
 				// check role claims from DB
@@ -469,7 +469,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				// assert
 
 				// check role claims from memory
-				var identityClaim = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value };
+				var identityClaim = new IdentityClaim(claim);
 				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim }, role.Claims);
 
 				// check role claims from DB
@@ -484,7 +484,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				var claim = new Claim("ClaimType", "some value");
 
 				var role = new IdentityRole("Adding_existing_claim_to_role_does_not_update_database_role_record");
-				var identityClaim = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value };
+				var identityClaim = new IdentityClaim(claim);
 				role.Claims.Add(identityClaim);
 				await _roleStore.CreateAsync(role);
 
@@ -516,8 +516,8 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				await _roleStore.AddClaimAsync(role, claim2);
 
 				// assert
-				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type, ClaimValue = claim1.Value };
-				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
+				var identityClaim1 = new IdentityClaim(claim1);
+				var identityClaim2 = new IdentityClaim(claim2);
 
 				// check role claims from memory
 				IdentityClaimAssert.Equal(new List<IdentityClaim> { identityClaim1, identityClaim2 }, role.Claims);
@@ -636,8 +636,8 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				// arrange
 				var claim1 = new Claim("ClaimType", "some value");
 				var claim2 = new Claim("ClaimType2", "some other value");
-				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type, ClaimValue = claim1.Value };
-				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
+				var identityClaim1 = new IdentityClaim(claim1);
+				var identityClaim2 = new IdentityClaim(claim2);
 
 				var role = new IdentityRole("Remove_existing_claim_updates_database_role_record");
 				role.Claims.Add(identityClaim1);
@@ -664,7 +664,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				var claim1 = new Claim("ClaimType", "some value");
 				var claim2 = new Claim("ClaimType2", "some other value");
 				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type.ToUpper(), ClaimValue = claim1.Value.ToUpper() };
-				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
+				var identityClaim2 = new IdentityClaim(claim2);
 
 				var role = new IdentityRole("Remove_existing_claim_updates_database_role_record");
 				role.Claims.Add(identityClaim1);
@@ -690,8 +690,8 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				// arrange
 				var claim1 = new Claim("ClaimType", "some value");
 				var claim2 = new Claim(claim1.Type, "some other value");
-				var identityClaim1 = new IdentityClaim { ClaimType = claim1.Type, ClaimValue = claim1.Value };
-				var identityClaim2 = new IdentityClaim { ClaimType = claim2.Type, ClaimValue = claim2.Value };
+				var identityClaim1 = new IdentityClaim(claim1);
+				var identityClaim2 = new IdentityClaim(claim2);
 
 				var role = new IdentityRole("Role_has_multiple_claims_with_same_ClaimType_removing_only_removes_cliam_with_same_value");
 				role.Claims.Add(identityClaim1);

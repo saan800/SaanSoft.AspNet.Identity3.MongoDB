@@ -1,6 +1,7 @@
 # SaanSoft.AspNet.Identity3.MongoDB
 
-<!-- [![Build status](https://ci.appveyor.com/api/projects/status/yopbw2mrf8ppqfkp/branch/master?svg=true)](https://ci.appveyor.com/project/saan800/aspnet-identity3-mongodb/branch/master) -->
+<!-- [![Build status](https://ci.appveyor.com/api/projects/status/8xpmflre615aa0s6/branch/master?svg=true)](https://ci.appveyor.com/project/saan800/saansoft-aspnet-identity3-mongodb/branch/master) -->
+
 
 An implementation for MongoDB.Driver (>= v2.1.0) with ASP.NET 5 Identity (>= v3) framework at <https://github.com/aspnet/Identity>
 

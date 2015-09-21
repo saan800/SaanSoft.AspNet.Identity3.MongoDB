@@ -52,11 +52,11 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 
 			_claim1SameType = new Claim(_claim1.Type, _claim1.Value + " different");
 
-			_identityClaim1 = new IdentityClaim { ClaimType = _claim1.Type, ClaimValue = _claim1.Value };
-			_identityClaim2 = new IdentityClaim { ClaimType = _claim2.Type, ClaimValue = _claim2.Value };
-			_identityClaim3 = new IdentityClaim { ClaimType = _claim3.Type, ClaimValue = _claim3.Value };
+			_identityClaim1 = new IdentityClaim(_claim1);
+			_identityClaim2 = new IdentityClaim(_claim2);
+			_identityClaim3 = new IdentityClaim(_claim3);
 
-			_identityClaim1SameType = new IdentityClaim { ClaimType = _claim1SameType.Type, ClaimValue = _claim1SameType.Value };
+			_identityClaim1SameType = new IdentityClaim(_claim1SameType);
 		}
 
 		public void Dispose()

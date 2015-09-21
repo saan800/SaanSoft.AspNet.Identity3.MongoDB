@@ -275,7 +275,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			EnsureClaimsNotNull(role);
 
 			// claim already exist - just return
-			var c = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value };
+			var c = new IdentityClaim(claim);
 			if (role.Claims.Any(x => x.Equals(c))) return;
 
 			// new claim for the role
@@ -303,7 +303,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			if (claim == null) throw new ArgumentNullException(nameof(claim));
 			EnsureClaimsNotNull(role);
 
-			var c = new IdentityClaim { ClaimType = claim.Type, ClaimValue = claim.Value};
+			var c = new IdentityClaim(claim);
 			if (role.Claims.Any(x => x.Equals(c)))
 			{
 				// need actual claim object with correct casing to remove from mongo

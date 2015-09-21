@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System.Security.Claims;
+using Xunit;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 {
@@ -11,6 +12,51 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 		{
 			_identityClaim1 = new IdentityClaim { ClaimType = "ClaimType1", ClaimValue = "some value" };
 			_identityClaim1SameType = new IdentityClaim { ClaimType = _identityClaim1.ClaimType, ClaimValue = _identityClaim1.ClaimValue + " different"};
+		}
+
+		public class Constructor : IdentityClaimTests
+		{
+			[Fact]
+			public void Init_with_empty_constructor_creates_with_null_CliamType_and_ClaimValue()
+			{
+				// act
+				var result = new IdentityClaim();
+
+				// assert
+				Assert.Null(result.ClaimType);
+				Assert.Null(result.ClaimValue);
+			}
+
+
+			[Fact]
+			public void Init_string_values_creates_CliamType_and_ClaimValue_set_to_values()
+			{
+				// arrange
+				string type = "ClaimType";
+				string val = " some value here";
+
+				// act
+				var result = new IdentityClaim(type, val);
+
+				// assert
+				Assert.Equal(type, result.ClaimType);
+				Assert.Equal(val, result.ClaimValue);
+			}
+
+
+			[Fact]
+			public void Init_from_Claim_object_creates_with_CliamType_and_ClaimValue_set_to_values_from_Claim()
+			{
+				// arrange
+				var claim = new Claim("ClaimType", "some value here");
+
+				// act
+				var result = new IdentityClaim(claim);
+
+				// assert
+				Assert.Equal(claim.Type, result.ClaimType);
+				Assert.Equal(claim.Value, result.ClaimValue);
+			}
 		}
 
 		public class EqualsObjMethod : IdentityClaimTests
