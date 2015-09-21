@@ -46,7 +46,7 @@ namespace Web.MongoDBIdentitySample
 		{
 			// Registers MongoDB conventions for ignoring default and blank fields
 			// NOTE: if you have registered default conventions elsewhere, probably don't need to do this
-			RegisterClassMap<ApplicationUser, IdentityRole, string>.Init();
+			RegisterClassMap<ApplicationUser, IdentityRole, string>.Init(); 
 
 			// Add Mongo Identity services to the services container.
 			services.AddIdentity<ApplicationUser, IdentityRole>()
