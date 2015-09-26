@@ -5,7 +5,9 @@ branches:
   only:
   - master
 clone_depth: 1services: mongodb
+init:
+  - git config --global core.autocrlf true
 build_script:
-  - build.cmd verify
+  - build.cmd
 build:
   verbosity: minimal
