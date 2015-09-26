@@ -4,10 +4,20 @@ pull_requests:
 branches:
   only:
   - master
-clone_depth: 1services: mongodb
+clone_depth: 1
+
+# Fix line endings in Windows. (runs before repo cloning)
 init:
   - git config --global core.autocrlf true
+
+# this turns of AppVeyor automatic searching for test-assemblies, not the actual testing
+test: off
+
+services: mongodb
+
 build_script:
   - build.cmd
-build:
-  verbosity: minimal
+
+
+environment:
+  XUNIT_TEST_VISITOR: Xunit.KRunner.AppVeyor
