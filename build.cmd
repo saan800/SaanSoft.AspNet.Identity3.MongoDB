@@ -5,7 +5,7 @@ SETLOCAL
 SET NUGET_VERSION=latest
 SET CACHED_NUGET=%LocalAppData%\NuGet\nuget.%NUGET_VERSION%.exe
 SET BUILDCMD_KOREBUILD_VERSION=""
-SET BUILDCMD_DNX_VERSION=""
+SET BUILDCMD_DNX_VERSION="1.0.0-beta7"
 
 IF EXIST %CACHED_NUGET% goto copynuget
 echo Downloading latest version of NuGet.exe...
@@ -37,5 +37,6 @@ IF %BUILDCMD_DNX_VERSION%=="" (
 CALL packages\KoreBuild\build\dnvm install default -runtime CoreCLR -arch x86
 
 :run
+echo Getting ready to run
 CALL packages\KoreBuild\build\dnvm use default -runtime CLR -arch x86
 packages\Sake\tools\Sake.exe -I packages\KoreBuild\build -f makefile.shade %*
