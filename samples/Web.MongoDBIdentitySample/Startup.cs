@@ -64,7 +64,7 @@ namespace Web.MongoDBIdentitySample
 					// options.CollectionSettings = [MongoCollectionSettings];			Defaults to: { WriteConcern = WriteConcern.WMajority } => Used when creating default [UserCollection] and [RoleCollection]
 					
 					// options.EnsureCollectionIndexes = [bool];						Defaults to: false => Used to ensure the User and Role collections have been created in MongoDB and indexes assigned. Only runs on first calls to user and role collections.
-					// options.CreateCollectionOptions = [CreateCollectionOptions];		Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and any collections need to be created.
+					// options.CreateCollectionOptions = [CreateCollectionOptions];		Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and User or Role collections need to be created.
 					// options.CreateIndexOptions = [CreateIndexOptions];				Defaults to: { Background = true, Sparse = true } => Used when [EnsureCollectionIndexes] is true and any indexes need to be created.
 				})
 				.AddDefaultTokenProviders();
