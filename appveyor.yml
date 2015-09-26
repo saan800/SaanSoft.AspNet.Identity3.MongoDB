@@ -6,6 +6,6 @@ branches:
   - master
 clone_depth: 1services: mongodb
 build_script:
-  - build.cmd --quiet --parallel verify
+  - build.cmd verify
 build:
   verbosity: minimal
