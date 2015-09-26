@@ -17,7 +17,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 
 			collectionPrefix = $"{typeof(IdentityDatabaseContextTests).Name}_{collectionPrefix}";
 
-			var configuration = new ConfigurationBuilder(".\\").AddJsonFile("config.json").Build();
+			var configuration = new ConfigurationBuilder().AddJsonFile("config.json").Build();
 
 			_databaseContext = new IdentityDatabaseContext
 			{

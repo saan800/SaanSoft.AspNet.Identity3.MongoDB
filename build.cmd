@@ -15,26 +15,16 @@ IF NOT EXIST %LocalAppData%\NuGet md %LocalAppData%\NuGet
 
 
 :copynuget
-IF EXIST .nuget\nuget.exe goto restore
+IF EXIST .nuget\nuget.exe goto dnvm
 md .nuget
 copy %CACHED_NUGET% .nuget\nuget.exe > nul
 
-:restore
-IF EXIST packages\KoreBuild goto run
-IF %BUILDCMD_KOREBUILD_VERSION%=="" (
-	.nuget\nuget.exe install KoreBuild -ExcludeVersion -o packages -nocache -pre
-) ELSE (
-	.nuget\nuget.exe install KoreBuild -version %BUILDCMD_KOREBUILD_VERSION% -ExcludeVersion -o packages -nocache -pre
-)
-.nuget\nuget.exe install Sake -ExcludeVersion -Out packages
 
-IF "%SKIP_DNX_INSTALL%"=="1" goto run
-IF %BUILDCMD_DNX_VERSION%=="" (
-	CALL packages\KoreBuild\build\dnvm upgrade -runtime CLR -arch x86
-) ELSE (
-	CALL packages\KoreBuild\build\dnvm install %BUILDCMD_DNX_VERSION% -runtime CLR -arch x86 -a default
-)
-CALL packages\KoreBuild\build\dnvm install default -runtime CoreCLR -arch x86
+:dnvm
+@powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
+dnvm install %BUILDCMD_DNX_VERSION%
+dnvm use %BUILDCMD_DNX_VERSION%
+
 
 :run
 echo Getting ready to run

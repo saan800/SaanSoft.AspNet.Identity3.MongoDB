@@ -48,7 +48,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 			RegisterClassMap<IdentityUser, IdentityRole, string>.Init();
 
 			//Get connection string from config.json
-			var builder = new ConfigurationBuilder(".\\").AddJsonFile("config.json");
+			var builder = new ConfigurationBuilder().AddJsonFile("config.json");
 			Configuration = builder.Build();
 
 			ConnectionString = Configuration["Data:ConnectionString"];
