@@ -40,5 +40,8 @@ CALL packages\KoreBuild\build\dnvm use default -runtime CLR -arch x86
 packages\Sake\tools\Sake.exe -I packages\KoreBuild\build -f makefile.shade %*
 
 
+:test
+cd test\SaanSoft.AspNet.Identity3.MongoDB.Tests
+dnvm test
 
 echo END CMD
