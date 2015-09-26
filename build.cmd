@@ -38,3 +38,7 @@ dnvm use %BUILDCMD_DNX_VERSION%
 echo Getting ready to run....
 CALL packages\KoreBuild\build\dnvm use default -runtime CLR -arch x86
 packages\Sake\tools\Sake.exe -I packages\KoreBuild\build -f makefile.shade %*
+
+
+
+echo END CMD
