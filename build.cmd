@@ -32,6 +32,7 @@ echo DNVM....
 @powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
 dnvm install %BUILDCMD_DNX_VERSION%
 dnvm use %BUILDCMD_DNX_VERSION%
+dnvm list
 
 
 :run
