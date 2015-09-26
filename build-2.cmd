@@ -2,6 +2,7 @@ cd %~dp0
 
 :dnvm
 dnvm use 1.0.0-beta7
+dnvm list
 
 :run
 echo Getting ready to run....
