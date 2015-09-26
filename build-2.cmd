@@ -1,5 +1,8 @@
 cd %~dp0
 
+:dnvm
+dnvm use 1.0.0-beta7
+
 :run
 echo Getting ready to run....
 CALL packages\KoreBuild\build\dnvm use default -runtime CLR -arch x86
