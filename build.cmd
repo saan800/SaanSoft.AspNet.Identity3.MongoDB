@@ -21,14 +21,14 @@ copy %CACHED_NUGET% .nuget\nuget.exe > nul
 
 
 :restore
-copy Restore....
+echo Restore....
 IF EXIST packages\KoreBuild goto run
 .nuget\NuGet.exe install KoreBuild -ExcludeVersion -o packages -nocache -pre
 .nuget\NuGet.exe install Sake -version 0.2 -o packages -ExcludeVersion
 
 
 :dnvm
-copy DNVM....
+echo DNVM....
 @powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
 dnvm install %BUILDCMD_DNX_VERSION%
 dnvm use %BUILDCMD_DNX_VERSION%
