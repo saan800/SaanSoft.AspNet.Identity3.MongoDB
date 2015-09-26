@@ -16,8 +16,8 @@ test: off
 services: mongodb
 
 build_script:
-  - build.cmd
-
+  - build-1.cmd
+  - build-2.cmd
 
 environment:
   XUNIT_TEST_VISITOR: Xunit.KRunner.AppVeyor
