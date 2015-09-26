@@ -31,9 +31,9 @@ IF EXIST packages\KoreBuild goto run
 echo DNVM....
 @powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
 echo DNVM 1....
-dnvm install %BUILDCMD_DNX_VERSION%
+dnvm install 1.0.0-beta7
 echo DNVM 2....
-dnvm use %BUILDCMD_DNX_VERSION%
+dnvm use 1.0.0-beta7
 echo DNVM 3....
 dnvm list
 echo DNVM 4....
@@ -46,6 +46,6 @@ packages\Sake\tools\Sake.exe -I packages\KoreBuild\build -f makefile.shade %*
 
 :test
 cd test\SaanSoft.AspNet.Identity3.MongoDB.Tests
-dnvm test
+dnx test
 
 echo END CMD
