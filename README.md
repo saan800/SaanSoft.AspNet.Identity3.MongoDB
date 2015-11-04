@@ -37,7 +37,6 @@ Code changes are in:
   * though do have a sample MVC website that you can check out in the mean time 
 * Finish all tests
 * dnxcore50 (read Frameworks below)
-* update the minimum version of MongoDB.Driver to 2.1.0 when its ready (currently using 2.1.0-rc0)
 
 From <http://stackoverflow.com/questions/27553952/when-is-asp-net-5-vnext-scheduled-for-release>
 
