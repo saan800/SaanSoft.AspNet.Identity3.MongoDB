@@ -3,7 +3,7 @@
 <!-- [![Build status](https://ci.appveyor.com/api/projects/status/8xpmflre615aa0s6/branch/master?svg=true)](https://ci.appveyor.com/project/saan800/saansoft-aspnet-identity3-mongodb/branch/master) -->
 
 
-An implementation for MongoDB.Driver (>= v2.1.0) with ASP.NET 5 Identity (>= v3) framework at <https://github.com/aspnet/Identity>
+An implementation for MongoDB.Driver (>= v2.1.1) with ASP.NET 5 Identity (>= v3) framework at <https://github.com/aspnet/Identity>
 
 Nuget package at: <https://www.nuget.org/packages/SaanSoft.AspNet.Identity3.MongoDB>
 
@@ -40,7 +40,6 @@ Code changes are in:
 
 From <http://stackoverflow.com/questions/27553952/when-is-asp-net-5-vnext-scheduled-for-release>
 
-* update to beta8 (end of Sept 2015)
 * update to RC (late autumn 2015)
 * update to release version
 
