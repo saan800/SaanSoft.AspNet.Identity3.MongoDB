@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB
 {
@@ -133,6 +134,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// <summary>
 		/// Get a list of all user's claims combined with claims from role
 		/// </summary>
+		[BsonElement]
 		public virtual IList<IdentityClaim> AllClaims
 		{ 
 			get

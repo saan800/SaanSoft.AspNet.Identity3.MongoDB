@@ -168,7 +168,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			UserCollection.Indexes.CreateOneAsync(loginProviderIndex, CreateIndexOptions);
 
 			// ensure claims index exists
-			var claimsProviderIndex = Builders<TUser>.IndexKeys.Ascending("Claims_ClaimType").Ascending("Roles_Claims_ClaimType");
+			var claimsProviderIndex = Builders<TUser>.IndexKeys.Ascending("AllClaims_ClaimType");
 			UserCollection.Indexes.CreateOneAsync(claimsProviderIndex, CreateIndexOptions);
 		}
 

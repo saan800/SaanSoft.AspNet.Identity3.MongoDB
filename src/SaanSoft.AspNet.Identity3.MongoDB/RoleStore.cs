@@ -405,10 +405,12 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// <returns></returns>
 		protected virtual async Task<bool> RoleDetailsAlreadyExists(TRole role, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			ConfigureDefaults(role);	
+
 			// if the result does exist, make sure its not for the same role object (ie same name, but different Ids)
 			var fBuilder = Builders<TRole>.Filter;
-			var filter = fBuilder.Ne(x => x.Id, role.Id) & fBuilder.Regex(x => x.NormalizedName, Normalize(role.NormalizedName));
-
+			var filter = fBuilder.Eq(x => x.NormalizedName, Normalize(role.NormalizedName)) & fBuilder.Ne(x => x.Id, role.Id);
+			
 			var result = await DatabaseContext.RoleCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 			return result != null;
 		}

@@ -9,9 +9,10 @@
 	"dependencies": {
 		"Microsoft.Framework.Configuration.Json": "1.0.0-*",
 		"SaanSoft.AspNet.Identity3.MongoDB": "1.0.0-*",
-		"xunit": "2.1.0-rc1-*",
-		"xunit.runner.dnx": "2.1.0-beta5-*",
-		"xunit.runner.visualstudio": "2.1.0-rc1-*"
+		"xunit": "2.1.0",
+		"xunit.core": "2.1.0",
+		"xunit.runner.dnx": "2.1.0-beta6-*",
+		"xunit.runner.visualstudio": "2.1.0"
 	},
 
 	"frameworks": {

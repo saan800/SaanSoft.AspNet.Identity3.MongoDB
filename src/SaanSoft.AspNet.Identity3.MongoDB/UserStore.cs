@@ -1140,10 +1140,11 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// <returns></returns>
 		protected virtual async Task<bool> UserDetailsAlreadyExists(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			ConfigureDefaults(user);
 			// if the result does exist, make sure its not for the same user object (ie same userName, but different Ids)
 			var fBuilder = Builders<TUser>.Filter;
-			var filter = fBuilder.Ne(x => x.Id, user.Id) & fBuilder.Eq(x => x.UserName, user.UserName);
-
+			var filter = fBuilder.Eq(x => x.NormalizedUserName, Normalize(user.NormalizedUserName)) & fBuilder.Ne(x => x.Id, user.Id);
+			
 			var result = await DatabaseContext.UserCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 			return result != null;
 		}

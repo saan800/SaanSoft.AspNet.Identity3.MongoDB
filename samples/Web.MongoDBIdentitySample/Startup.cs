@@ -9,11 +9,11 @@ using Microsoft.AspNet.Authentication.Twitter;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;
 using Microsoft.AspNet.Hosting;
+using Microsoft.Dnx.Runtime;
 using Microsoft.Framework.Configuration;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 using SaanSoft.AspNet.Identity3.MongoDB;
-using Microsoft.Dnx.Runtime;
 using Web.MongoDBIdentitySample.Models;
 using Web.MongoDBIdentitySample.Services;
 
@@ -24,10 +24,11 @@ namespace Web.MongoDBIdentitySample
 		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
 		{
 			// Setup configuration sources.
-
-			var builder = new ConfigurationBuilder(appEnv.ApplicationBasePath)
+			var builder = new ConfigurationBuilder()
+				.SetBasePath(appEnv.ApplicationBasePath)
 				.AddJsonFile("config.json")
-				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true);
+				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)
+				.AddEnvironmentVariables();
 
 			if (env.IsDevelopment())
 			{
@@ -35,7 +36,6 @@ namespace Web.MongoDBIdentitySample
 				// For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
 				builder.AddUserSecrets();
 			}
-			builder.AddEnvironmentVariables();
 			Configuration = builder.Build();
 		}
 
@@ -53,37 +53,22 @@ namespace Web.MongoDBIdentitySample
 				.AddMongoDBIdentityStores<ApplicationDbContext, ApplicationUser, IdentityRole, string>(options =>
 				{
 					options.ConnectionString = Configuration["Data:DefaultConnection:ConnectionString"];        // No default, must be configured if using (eg "mongodb://localhost:27017")
-					// options.Client = [IMongoClient];									Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
-					// options.DatabaseName = [string];									Defaults to: "AspNetIdentity"
-					// options.Database = [IMongoDatabase];								Defaults to: Creating Database using [DatabaseName] and [Client]
+					// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
+					// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
+					// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
 
-					// options.UserCollectionName = [string];							Defaults to: "AspNetUsers"
-					// options.RoleCollectionName = [string];							Defaults to: "AspNetRoles"
-					// options.UserCollection = [IMongoCollection<TUser>];				Defaults to: Creating user collection in [Database] using [UserCollectionName] and [CollectionSettings]
-					// options.RoleCollection = [IMongoCollection<TRole>];				Defaults to: Creating user collection in [Database] using [RoleCollectionName] and [CollectionSettings]
-					// options.CollectionSettings = [MongoCollectionSettings];			Defaults to: { WriteConcern = WriteConcern.WMajority } => Used when creating default [UserCollection] and [RoleCollection]
+					// options.UserCollectionName = [string];							// Defaults to: "AspNetUsers"
+					// options.RoleCollectionName = [string];							// Defaults to: "AspNetRoles"
+					// options.UserCollection = [IMongoCollection<TUser>];				// Defaults to: Creating user collection in [Database] using [UserCollectionName] and [CollectionSettings]
+					// options.RoleCollection = [IMongoCollection<TRole>];				// Defaults to: Creating user collection in [Database] using [RoleCollectionName] and [CollectionSettings]
+					// options.CollectionSettings = [MongoCollectionSettings];			// Defaults to: { WriteConcern = WriteConcern.WMajority } => Used when creating default [UserCollection] and [RoleCollection]
 					
-					// options.EnsureCollectionIndexes = [bool];						Defaults to: false => Used to ensure the User and Role collections have been created in MongoDB and indexes assigned. Only runs on first calls to user and role collections.
-					// options.CreateCollectionOptions = [CreateCollectionOptions];		Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and User or Role collections need to be created.
-					// options.CreateIndexOptions = [CreateIndexOptions];				Defaults to: { Background = true, Sparse = true } => Used when [EnsureCollectionIndexes] is true and any indexes need to be created.
+					// options.EnsureCollectionIndexes = [bool];						// Defaults to: false => Used to ensure the User and Role collections have been created in MongoDB and indexes assigned. Only runs on first calls to user and role collections.
+					// options.CreateCollectionOptions = [CreateCollectionOptions];		// Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and User or Role collections need to be created.
+					// options.CreateIndexOptions = [CreateIndexOptions];				// Defaults to: { Background = true, Sparse = true } => Used when [EnsureCollectionIndexes] is true and any indexes need to be created.
 				})
 				.AddDefaultTokenProviders();
 			
-
-			// Configure the options for the authentication middleware.
-			// You can add options for Google, Twitter and other middleware as shown below.
-			// For more information see http://go.microsoft.com/fwlink/?LinkID=532715
-			services.Configure<FacebookAuthenticationOptions>(options =>
-			{
-				options.AppId = Configuration["Authentication:Facebook:AppId"];
-				options.AppSecret = Configuration["Authentication:Facebook:AppSecret"];
-			});
-
-			services.Configure<MicrosoftAccountAuthenticationOptions>(options =>
-			{
-				options.ClientId = Configuration["Authentication:MicrosoftAccount:ClientId"];
-				options.ClientSecret = Configuration["Authentication:MicrosoftAccount:ClientSecret"];
-			});
 
 			// Add MVC services to the services container.
 			services.AddMvc();
@@ -102,6 +87,7 @@ namespace Web.MongoDBIdentitySample
 		{
 			loggerFactory.MinimumLevel = LogLevel.Information;
 			loggerFactory.AddConsole();
+			loggerFactory.AddDebug();
 
 			// Configure the HTTP request pipeline.
 
@@ -109,14 +95,17 @@ namespace Web.MongoDBIdentitySample
 			if (env.IsDevelopment())
 			{
 				app.UseBrowserLink();
-				app.UseErrorPage(new ErrorPageOptions { SourceCodeLineCount = 20});
+				app.UseDeveloperExceptionPage(new ErrorPageOptions { SourceCodeLineCount = 20});
 			}
 			else
 			{
 				// Add Error handling middleware which catches all application specific errors and
 				// sends the request to the following path or controller action.
-				app.UseErrorHandler("/Home/Error");
+				app.UseExceptionHandler("/Home/Error");
 			}
+
+			// Add the platform handler to the request pipeline.
+			app.UseIISPlatformHandler();
 
 			// Add static files to the request pipeline.
 			app.UseStaticFiles();
@@ -124,12 +113,29 @@ namespace Web.MongoDBIdentitySample
 			// Add cookie-based authentication to the request pipeline.
 			app.UseIdentity();
 
-			// Add authentication middleware to the request pipeline. You can configure options such as Id and Secret in the ConfigureServices method.
+			// Add and configure the options for authentication middleware to the request pipeline.
+			// You can add options for middleware as shown below.
 			// For more information see http://go.microsoft.com/fwlink/?LinkID=532715
-			// app.UseFacebookAuthentication();
-			// app.UseGoogleAuthentication();
-			// app.UseMicrosoftAccountAuthentication();
-			// app.UseTwitterAuthentication();
+			//app.UseFacebookAuthentication(options =>
+			//{
+			//    options.AppId = Configuration["Authentication:Facebook:AppId"];
+			//    options.AppSecret = Configuration["Authentication:Facebook:AppSecret"];
+			//});
+			//app.UseGoogleAuthentication(options =>
+			//{
+			//    options.ClientId = Configuration["Authentication:Google:ClientId"];
+			//    options.ClientSecret = Configuration["Authentication:Google:ClientSecret"];
+			//});
+			//app.UseMicrosoftAccountAuthentication(options =>
+			//{
+			//    options.ClientId = Configuration["Authentication:MicrosoftAccount:ClientId"];
+			//    options.ClientSecret = Configuration["Authentication:MicrosoftAccount:ClientSecret"];
+			//});
+			//app.UseTwitterAuthentication(options =>
+			//{
+			//    options.ConsumerKey = Configuration["Authentication:Twitter:ConsumerKey"];
+			//    options.ConsumerSecret = Configuration["Authentication:Twitter:ConsumerSecret"];
+			//});
 
 			// Add MVC to the request pipeline.
 			app.UseMvc(routes =>

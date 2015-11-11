@@ -1,8 +1,8 @@
 ﻿{
-	"version": "1.0.0-beta7-03",
+	"version": "1.0.0-beta8-04",
 	"description": "SaanSoft.AspNet.Identity3.MongoDB: A MongoDB implementation for Microsoft.AspNet.Identity database layer.",
 	"authors": [ "SaanSoft" ],
-	"tags": [ "Microsoft.AspNet.Identity, MongoDB" ],
+	"tags": [ "Microsoft.AspNet.Identity", "MongoDB", "dnx451" ],
 	"projectUrl": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB",
 	"licenseUrl": "http://www.apache.org/licenses/", 
 
@@ -12,9 +12,9 @@
 	},
 
 	"dependencies": {
-		"Microsoft.AspNet.Identity": "3.0.0-beta7",
-		"Microsoft.Framework.DependencyInjection": "1.0.0-beta7",
-		"MongoDB.Driver":  "(2.1.0,3.0.0]"
+		"Microsoft.AspNet.Identity": "3.0.0-beta8",
+		"Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
+		"MongoDB.Driver": "(2.1.1,3.0.0]"
 	},
 
 	"frameworks": {

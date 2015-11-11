@@ -85,7 +85,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 			[InlineData("NormalizedEmail_1")]
 			[InlineData("Logins_LoginProvider_1")]
 			[InlineData("Roles_NormalizedName_1")]
-			[InlineData("Claims_ClaimType_1_Roles_Claims_ClaimType_1")]
+			[InlineData("AllClaims_ClaimType_1")]
 			public async Task Should_create_index(string expectedIndexName)
 			{
 				// act
