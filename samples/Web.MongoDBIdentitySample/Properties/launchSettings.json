@@ -11,7 +11,7 @@
     "web": {
       "commandName": "web",
       "launchBrowser": true,
-      "launchUrl": "http://localhost:5000",
+      "launchUrl": "http://localhost:5100",
       "environmentVariables": {
         "ASPNET_ENV": "Development"
       }
