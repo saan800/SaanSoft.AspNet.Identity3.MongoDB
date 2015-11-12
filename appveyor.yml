@@ -1,4 +1,4 @@
-version: 1.0.0-beta7-{build}
+version: 1.0.0-beta8-{build}
 pull_requests:
   do_not_increment_build_number: true
 branches:
@@ -12,12 +12,13 @@ init:
 
 # this turns of AppVeyor automatic searching for test-assemblies, not the actual testing
 test: off
+deploy: off
 
 services: mongodb
 
 build_script:
-  - build-1.cmd
-  - build-2.cmd
+  - build.cmd
 
-environment:
-  XUNIT_TEST_VISITOR: Xunit.KRunner.AppVeyor
+#environment:
+#  XUNIT_TEST_VISITOR: Xunit.KRunner.AppVeyor
+

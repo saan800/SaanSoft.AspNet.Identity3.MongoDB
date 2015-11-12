@@ -36,12 +36,16 @@ Code changes are in:
 * help documentation for setup and overriding
   * though do have a sample MVC website that you can check out in the mean time 
 * Finish all tests
+* add logging to UserStore, RoleStore, IdentityDatabaseContext
+    * LogDebug: of the generated mongo queries where possible
+        * <http://stackoverflow.com/questions/30306193/get-generated-script-in-mongodb-c-sharp-driver>
+    * LogError: add try / catch / Log around all insert/update/delete functionality to the database
 * dnxcore50 (read Frameworks below)
 
 From <http://stackoverflow.com/questions/27553952/when-is-asp-net-5-vnext-scheduled-for-release>
 
 * update to RC (late autumn 2015)
-* update to release version
+* update to release version (Q1 2016)
 
 
 ## Frameworks
