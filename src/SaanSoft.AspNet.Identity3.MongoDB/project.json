@@ -1,5 +1,5 @@
 ﻿{
-	"version": "1.0.0-beta8-04",
+	"version": "1.0.0-beta8-05",
 	"description": "SaanSoft.AspNet.Identity3.MongoDB: A MongoDB implementation for Microsoft.AspNet.Identity database layer.",
 	"authors": [ "SaanSoft" ],
 	"tags": [ "Microsoft.AspNet.Identity", "MongoDB", "dnx451" ],

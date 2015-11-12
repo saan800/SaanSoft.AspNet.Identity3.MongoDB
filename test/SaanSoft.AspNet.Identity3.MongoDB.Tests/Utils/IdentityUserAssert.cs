@@ -28,7 +28,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 			IdentityRoleAssert.Equal(expected.Roles.Cast<IdentityRole>(), actual.Roles.Cast<IdentityRole>());
 			IdentityClaimAssert.Equal(expected.Claims, actual.Claims);
 			IdentityClaimAssert.Equal(expected.AllClaims, actual.AllClaims);
-			IdentityUserLoginAssert.Equal(expected.Logins, actual.Logins);
+			UserLoginInfoAssert.Equal(expected.Logins, actual.Logins);
 		}
 		
 		public static void Equal(IEnumerable<IdentityUser> expected, IEnumerable<IdentityUser> actual)

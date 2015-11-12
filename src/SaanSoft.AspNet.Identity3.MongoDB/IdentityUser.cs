@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNet.Identity;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB
@@ -151,12 +152,12 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// <summary>
 		/// Navigation property for users logins
 		/// </summary>
-		public virtual IList<IdentityUserLogin> Logins
+		public virtual IList<UserLoginInfo> Logins
 		{
 			get { return _logins; }
-			set { _logins = value ?? new List<IdentityUserLogin>(); }
+			set { _logins = value ?? new List<UserLoginInfo>(); }
 		}
-		private IList<IdentityUserLogin> _logins = new List<IdentityUserLogin>();
+		private IList<UserLoginInfo> _logins = new List<UserLoginInfo>();
 
 		/// <summary>
 		/// Returns a friendly name
@@ -168,7 +169,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		}
 
 
-		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
+		#region IEquatable<TKey> (Equals, GetHashCode(), ==, !=)
 
 		public override bool Equals(object obj)
 		{

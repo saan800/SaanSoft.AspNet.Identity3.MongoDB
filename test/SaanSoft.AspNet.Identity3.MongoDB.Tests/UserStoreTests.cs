@@ -387,6 +387,237 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				public AddLoginAsyncMethod() : base(typeof(AddLoginAsyncMethod).Name)
 				{
 				}
+
+				[Fact]
+				public async Task Adding_new_login_details_updates_database_user_record()
+				{
+					// arrange
+					var user = new IdentityUser("Adding_new_login_details_updates_database_user_record");
+					await _userStore.CreateAsync(user);
+
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+
+					// act
+					await _userStore.AddLoginAsync(user, login);
+
+					// assert
+
+					// check user logins from memory object
+					Assert.NotNull(user.Logins);
+					Assert.Equal(1, user.Logins.Count);
+					Assert.Equal(login.LoginProvider, user.Logins.First().LoginProvider);
+					Assert.Equal(login.ProviderKey, user.Logins.First().ProviderKey);
+					Assert.Equal(login.ProviderDisplayName, user.Logins.First().ProviderDisplayName);
+
+					// check user logins from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.NotNull(userFromDb.Logins);
+					Assert.Equal(1, userFromDb.Logins.Count);
+					Assert.Equal(login.LoginProvider, userFromDb.Logins.First().LoginProvider);
+					Assert.Equal(login.ProviderKey, userFromDb.Logins.First().ProviderKey);
+					Assert.Equal(login.ProviderDisplayName, userFromDb.Logins.First().ProviderDisplayName);
+				}
+				
+				[Fact]
+				public async Task Updating_login_details_for_a_provider_same_key_replaces_details_and_updates_database_user_record()
+				{
+					// arrange
+					var user = new IdentityUser("Updating_login_details_for_a_provider_same_key_replaces_details_and_updates_database_user_record");
+					var currentLogin = new UserLoginInfo("a login provider","key", "display name");
+					user.Logins.Add(currentLogin);
+					await _userStore.CreateAsync(user);
+
+					var newLogin = new UserLoginInfo(currentLogin.LoginProvider, currentLogin.ProviderKey, " other display name");
+
+					// act
+					await _userStore.AddLoginAsync(user, newLogin);
+
+					// assert
+
+					// check user logins from memory object
+					Assert.NotNull(user.Logins);
+					Assert.Equal(1, user.Logins.Count);
+					Assert.Equal(newLogin.LoginProvider, user.Logins.First().LoginProvider);
+					Assert.Equal(newLogin.ProviderKey, user.Logins.First().ProviderKey);
+					Assert.Equal(newLogin.ProviderDisplayName, user.Logins.First().ProviderDisplayName);
+
+					// check user logins from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.NotNull(userFromDb.Logins);
+					Assert.Equal(1, userFromDb.Logins.Count);
+					Assert.Equal(newLogin.LoginProvider, userFromDb.Logins.First().LoginProvider);
+					Assert.Equal(newLogin.ProviderKey, userFromDb.Logins.First().ProviderKey);
+					Assert.Equal(newLogin.ProviderDisplayName, userFromDb.Logins.First().ProviderDisplayName);
+				}
+
+
+
+				[Fact]
+				public async Task Updating_login_details_for_a_provider__different_key_adds_login_details_and_updates_database_user_record()
+				{
+					// arrange
+					var user = new IdentityUser("Updating_login_details_for_a_provider__different_key_replaces_details_and_updates_database_user_record");
+
+					var currentLogin = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(currentLogin);
+					await _userStore.CreateAsync(user);
+
+					var newLogin = new UserLoginInfo(currentLogin.LoginProvider, currentLogin.ProviderKey + " different", " other display name");
+
+					// act
+					await _userStore.AddLoginAsync(user, newLogin);
+
+					// assert
+
+					// check user logins from memory object
+					Assert.NotNull(user.Logins);
+					Assert.Equal(2, user.Logins.Count);
+
+					// check user logins from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.NotNull(userFromDb.Logins);
+					Assert.Equal(2, userFromDb.Logins.Count);
+				}
+			}
+
+			public class RemoveLoginAsyncMethod : IUserLoginStoreTests
+			{
+				public RemoveLoginAsyncMethod() : base(typeof(RemoveLoginAsyncMethod).Name)
+				{
+				}
+
+				[Fact]
+				public async Task Removing_existing_login_should_update_database_record()
+				{
+					// arrange
+					var user = new IdentityUser("Removing_existing_login_should_update_database_record");
+					
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					await _userStore.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey);
+
+					// assert
+
+					// check user logins from memory object
+					Assert.NotNull(user.Logins);
+					Assert.Empty(user.Logins);
+
+					// check user logins from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.NotNull(userFromDb.Logins);
+					Assert.Empty(userFromDb.Logins);
+				}
+
+
+
+				[Fact]
+				public async Task Removing_existing_login_with_different_case_values_should_update_database_record()
+				{
+					// arrange
+					var user = new IdentityUser("Removing_existing_login_with_different_case_values_should_update_database_record");
+
+
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					await _userStore.RemoveLoginAsync(user, login.LoginProvider.ToUpper(), login.ProviderKey.ToUpper());
+
+					// assert
+
+					// check user logins from memory object
+					Assert.NotNull(user.Logins);
+					Assert.Empty(user.Logins);
+
+					// check user logins from DB
+					var userFromDb = await _userCollection.Find(x => x.Id == user.Id).SingleOrDefaultAsync();
+					Assert.NotNull(userFromDb.Logins);
+					Assert.Empty(userFromDb.Logins);
+				}
+
+			}
+
+			public class FindByLoginAsyncMethod : IUserLoginStoreTests
+			{
+				public FindByLoginAsyncMethod() : base(typeof (FindByLoginAsyncMethod).Name)
+				{
+				}
+
+				[Fact]
+				public async Task When_login_provider_key_does_not_match_user_in_database_should_return_null()
+				{
+					// arrange
+					var user = new IdentityUser("When_login_provider_key_does_not_match_user_in_database_should_return_null");
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					var result = await _userStore.FindByLoginAsync(login.LoginProvider, login.ProviderKey + " different");
+
+					// assert
+					Assert.Null(result);
+				}
+
+				[Fact]
+				public async Task When_login_provider_does_not_match_user_in_database_should_return_null()
+				{
+					// arrange
+					var user = new IdentityUser("When_login_provider_does_not_match_user_in_database_should_return_null");
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					var result = await _userStore.FindByLoginAsync(login.LoginProvider + " different", login.ProviderKey);
+
+					// assert
+					Assert.Null(result);
+				}
+
+				[Fact]
+				public async Task When_login_provider_details_match_a_user_in_database_should_return_user()
+				{
+					// arrange
+					var user = new IdentityUser("When_login_provider_details_match_a_user_in_database_should_return_user");
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					var result = await _userStore.FindByLoginAsync(login.LoginProvider, login.ProviderKey);
+
+					// assert
+					Assert.NotNull(result);
+					IdentityUserAssert.Equal(user, result);
+				}
+
+				[Fact]
+				public async Task When_login_provider_details_with_different_casing_match_a_user_in_database_should_return_user()
+				{
+					// arrange
+					var user = new IdentityUser("When_login_provider_details_with_different_casing_match_a_user_in_database_should_return_user");
+					var login = new UserLoginInfo("a login provider", "key", "display name");
+					user.Logins.Add(login);
+					await _userStore.CreateAsync(user);
+
+
+					// act
+					var result = await _userStore.FindByLoginAsync(login.LoginProvider.ToUpper(), login.ProviderKey.ToUpper());
+
+					// assert
+					Assert.NotNull(result);
+					IdentityUserAssert.Equal(user, result);
+				}
 			}
 		}
 

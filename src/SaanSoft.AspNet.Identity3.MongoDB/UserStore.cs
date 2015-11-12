@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB
 {
@@ -251,26 +252,18 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
 		public virtual async Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			if (login == null) throw new ArgumentNullException(nameof(login));
 			EnsureLoginsNotNull(user);
-
+			
 			// check if login already exists for this provider and remove old details
 			await RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey, cancellationToken);
 
-			// add new details
-			var iul = new IdentityUserLogin
-			{
-				ProviderKey = login.ProviderKey,
-				LoginProvider = login.LoginProvider,
-				ProviderDisplayName = login.ProviderDisplayName
-			};
-
-			user.Logins.Add(iul);
-			var update = Builders<TUser>.Update.Push(x => x.Logins, iul);
+			// add new login details to user object in memory and DB
+			user.Logins.Add(login);
+			var update = Builders<TUser>.Update.Push(x => x.Logins, login);
 			await DoUserDetailsUpdate(user.Id, update, null, cancellationToken);
 		}
 
@@ -288,13 +281,12 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
 			EnsureLoginsNotNull(user);
 
-			var existingLogins = user.Logins.Where(l => l.Equals(new IdentityUserLogin { LoginProvider = loginProvider, ProviderKey = providerKey })).ToList();
+			var existingLogins = user.Logins.Where(l => l.AreEqual(new UserLoginInfo(loginProvider, providerKey, null))).ToList();
 			if (existingLogins.Any())
 			{
 				foreach (var el in existingLogins)
@@ -317,7 +309,6 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			if (user == null) throw new ArgumentNullException(nameof(user));
@@ -338,12 +329,11 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		/// </returns>
 		public virtual async Task<TUser> FindByLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// TODO: tests (case insensitive)
 			cancellationToken.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			
-			var loginBuilder = Builders<IdentityUserLogin>.Filter;
-			var loginFilter = loginBuilder.Eq(x => x.LoginProvider, loginProvider) & loginBuilder.Eq(x => x.ProviderKey, providerKey);
+			var loginBuilder = Builders<UserLoginInfo>.Filter;
+			var loginFilter = loginBuilder.Regex(x => x.LoginProvider, new BsonRegularExpression(loginProvider, "i")) & loginBuilder.Regex(x => x.ProviderKey, new BsonRegularExpression(providerKey, "i"));
 
 			var fBuilder = Builders<TUser>.Filter;
 			var filter = fBuilder.ElemMatch(x => x.Logins, loginFilter);
@@ -624,11 +614,8 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 			var claimBuilder = Builders<IdentityClaim>.Filter;
 			var claimFilter = claimBuilder.Eq(x => x.ClaimType, claim.Type) & claimBuilder.Eq(x => x.ClaimValue, claim.Value);
 			
-			var roleClaimFilter = Builders<IdentityRole<TKey>>.Filter.ElemMatch(x => x.Claims, claimFilter);
-			
 			var fBuilder = Builders<TUser>.Filter;
-			var filter = Builders<TUser>.Filter.Or(fBuilder.ElemMatch(x => x.Claims, claimFilter),
-												   fBuilder.ElemMatch(x => x.Roles, roleClaimFilter));
+			var filter = Builders<TUser>.Filter.Or(fBuilder.ElemMatch(x => x.AllClaims, claimFilter));
 
 			return await DatabaseContext.UserCollection.Find(filter).ToListAsync(cancellationToken);
 		}
@@ -1183,7 +1170,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 
 		protected virtual void EnsureLoginsNotNull(TUser user)
 		{
-			if (user.Logins == null) user.Logins = new List<IdentityUserLogin>();
+			if (user.Logins == null) user.Logins = new List<UserLoginInfo>();
 		}
 
 		protected virtual void EnsureClaimsNotNull(TUser user)

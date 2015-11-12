@@ -80,7 +80,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 		}
 
 
-		#region IEquatable<IdentityUserLogin> (Equals, GetHashCode(), ==, !=)
+		#region IEquatable<TKey> (Equals, GetHashCode(), ==, !=)
 
 		public override bool Equals(object obj)
 		{

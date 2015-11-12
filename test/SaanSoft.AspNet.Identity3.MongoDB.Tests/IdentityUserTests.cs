@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.AspNet.Identity;
 using Xunit;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
@@ -18,7 +19,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 		protected IdentityClaim Claim4;
 		protected IdentityClaim Claim1Alt;
 
-		protected IdentityUserLogin Login1;
+		protected UserLoginInfo Login1;
 
 		public IdentityUserTests()
 		{
@@ -34,7 +35,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 
 			Claim1Alt = new IdentityClaim { ClaimType = "Claim1", ClaimValue = "Some alternate value" };
 
-			Login1 = new IdentityUserLogin { LoginProvider = "Form", ProviderDisplayName = "Bob", ProviderKey = "password"};
+			Login1 = new UserLoginInfo("SomeProvider", "AKey", "Bob");
 
 		}
 

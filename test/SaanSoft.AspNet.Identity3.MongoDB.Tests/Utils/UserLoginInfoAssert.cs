@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNet.Identity;
 using Xunit;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 {
-	public static class IdentityUserLoginAssert
+	public static class UserLoginInfoAssert
 	{
-		public static void Equal(IdentityUserLogin expected, IdentityUserLogin actual)
+		public static void Equal(UserLoginInfo expected, UserLoginInfo actual)
 		{
 			Assert.True((expected == null && actual == null) || (expected != null && actual != null));
 
@@ -15,7 +16,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 			Assert.Equal(expected.ProviderDisplayName, actual.ProviderDisplayName);
 		}
 
-		public static void Equal(IEnumerable<IdentityUserLogin> expected, IEnumerable<IdentityUserLogin> actual)
+		public static void Equal(IEnumerable<UserLoginInfo> expected, IEnumerable<UserLoginInfo> actual)
 		{
 			Assert.True((expected == null && actual == null) || (expected != null && actual != null));
 			Assert.Equal(expected.Count(), actual.Count());

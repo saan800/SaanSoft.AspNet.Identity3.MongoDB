@@ -5,17 +5,19 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using Xunit;
+using Moq;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 {
 	public class UserStoreInMemoryTests
 	{
 		private readonly UserStore<IdentityUser, IdentityRole> _userStore;
+		protected Mock<IdentityDatabaseContext> MockDatabaseContext;
 
 		public UserStoreInMemoryTests()
 		{
-			var databaseContext = new IdentityDatabaseContext();
-			_userStore = new UserStore<IdentityUser, IdentityRole>(databaseContext);
+			MockDatabaseContext = new Mock<IdentityDatabaseContext>();
+			_userStore = new UserStore<IdentityUser, IdentityRole>(MockDatabaseContext.Object);
 		}
 
 		public class Misc : UserStoreInMemoryTests
@@ -48,10 +50,14 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.ReplaceClaimAsync(null, null, null));
 				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.RemoveClaimsAsync(null, null));
 				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.GetUsersForClaimAsync(null));
+				
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.AddLoginAsync(null, null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.RemoveLoginAsync(null, null, null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.GetLoginsAsync(null));
+				await Assert.ThrowsAsync<ObjectDisposedException>(async () => await _userStore.FindByLoginAsync(null, null));
 
-				// TODO:
-				// AddLoginAsync
 
+				// TODO
 			}
 
 			[Fact]
@@ -76,9 +82,14 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				await Assert.ThrowsAsync<ArgumentNullException>("claim", async () => await _userStore.GetUsersForClaimAsync(null));
 
 
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.AddLoginAsync(null, new UserLoginInfo("", "", "")));
+				await Assert.ThrowsAsync<ArgumentNullException>("login", async () => await _userStore.AddLoginAsync(new IdentityUser("Bob"),  null));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.RemoveLoginAsync(null, "provider", "key"));
+				await Assert.ThrowsAsync<ArgumentNullException>("user", async () => await _userStore.GetLoginsAsync(null));
+
+
 
 				// TODO:
-				// AddLoginAsync - check user and login
 			}
 		}
 
@@ -203,8 +214,7 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 			}
 		}
 
-
-	public class GetClaimsAsyncMethod : UserStoreInMemoryTests
+		public class GetClaimsAsyncMethod : UserStoreInMemoryTests
 		{
 			[Fact]
 			public async Task Returns_empty_list_when_claims_on_user_not_set()
@@ -278,6 +288,106 @@ namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
 				Assert.True(result.Single(c => c.Type == claim2.ClaimType && c.Value == claim2.ClaimValue) != null);
 				Assert.True(result.Single(c => c.Type == claim3.ClaimType && c.Value == claim3.ClaimValue) != null);
 
+			}
+		}
+
+		public class RemoveLoginAsyncMethod : UserStoreInMemoryTests
+		{
+			[Fact]
+			public async Task Removing_login_details_that_dont_exist_should_not_update_user_or_database()
+			{
+				// arrange
+				var user = new IdentityUser();
+				var login = new UserLoginInfo("a provider", "key", "john smith");
+				user.Logins.Add(login);
+
+
+				// act
+				await _userStore.RemoveLoginAsync(user, login.LoginProvider + "different", login.ProviderKey + "different");
+
+				// assert
+				Assert.Equal(1, user.Logins.Count);
+				Assert.Equal(login, user.Logins.First());
+
+				// check no db access
+				MockDatabaseContext.Verify(x => x.UserCollection, Times.Never);
+			}
+
+			[Fact]
+			public async Task Removing_provider_that_exists_but_key_that_does_not_exist_should_not_update_user_or_database()
+			{
+				// arrange
+				var user = new IdentityUser();
+				var login = new UserLoginInfo("a provider", "key", "john smith");
+				user.Logins.Add(login);
+
+
+				// act
+				await _userStore.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey + "different");
+
+				// assert
+				Assert.Equal(1, user.Logins.Count);
+				Assert.Equal(login, user.Logins.First());
+
+				// check no db access
+				MockDatabaseContext.Verify(x => x.UserCollection, Times.Never);
+			}
+
+			[Fact]
+			public async Task Removing_provider_that_does_not_exists_but_key_that_does_exist_should_not_update_user_or_database()
+			{
+				// arrange
+				var user = new IdentityUser();
+				var login = new UserLoginInfo("a provider", "key", "john smith");
+				user.Logins.Add(login);
+
+
+				// act
+				await _userStore.RemoveLoginAsync(user, login.LoginProvider + "different", login.ProviderKey);
+
+				// assert
+				Assert.Equal(1, user.Logins.Count);
+				Assert.Equal(login, user.Logins.First());
+
+				// check no db access
+				MockDatabaseContext.Verify(x => x.UserCollection, Times.Never);
+			}
+		}
+
+
+		public class GetLoginsAsyncMethod : UserStoreInMemoryTests
+		{
+			[Fact]
+			public async Task If_user_has_no_login_details_should_return_empty_list()
+			{
+				// arrange
+				var user = new IdentityUser();
+
+				// act
+				var result = await _userStore.GetLoginsAsync(user);
+
+				// assert
+				Assert.NotNull(result);
+				Assert.Empty(result);
+			}
+
+
+			[Fact]
+			public async Task If_user_has_login_details_should_return_all_in_list()
+			{
+				// arrange
+				var user = new IdentityUser();
+				var login1 = new UserLoginInfo("a provider", "key", "john smith");
+				var login2 = new UserLoginInfo("a different provider", "key2", "john smith");
+				user.Logins.Add(login1);
+				user.Logins.Add(login2);
+
+				// act
+				var result = await _userStore.GetLoginsAsync(user);
+
+				// assert
+				Assert.NotNull(result);
+				Assert.Equal(2, result.Count);
 			}
 		}
 	}
