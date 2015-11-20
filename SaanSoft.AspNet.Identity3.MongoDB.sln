@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24627.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__Solution Items", "__Solution Items", "{5D6C297D-D138-4C97-A8D7-F0E893FBC841}"
 	ProjectSection(SolutionItems) = preProject
@@ -23,8 +23,6 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "SaanSoft.AspNet.Identity3.M
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "SaanSoft.AspNet.Identity3.MongoDB.Tests", "test\SaanSoft.AspNet.Identity3.MongoDB.Tests\SaanSoft.AspNet.Identity3.MongoDB.Tests.xproj", "{873D862A-CAAD-4C36-8388-56E70CB16A1E}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Web.MongoDBIdentitySample", "samples\Web.MongoDBIdentitySample\Web.MongoDBIdentitySample.xproj", "{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__Build", "__Build", "{AC02851C-EF5D-41C0-AECA-952ED1610795}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
@@ -32,6 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__Build", "__Build", "{AC02
 		build.cmd = build.cmd
 		makefile.shade = makefile.shade
 	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Web.MongoDBIdentitySample", "samples\Web.MongoDBIdentitySample\Web.MongoDBIdentitySample.xproj", "{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,19 +44,20 @@ Global
 		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Test|Any CPU.ActiveCfg = Test|Any CPU
-		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Test|Any CPU.Build.0 = Test|Any CPU
+		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Test|Any CPU.ActiveCfg = Release|Any CPU
+		{B071AA63-BB97-4F57-BC33-D336F98C02D0}.Test|Any CPU.Build.0 = Release|Any CPU
 		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Test|Any CPU.ActiveCfg = Test|Any CPU
-		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Test|Any CPU.Build.0 = Test|Any CPU
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE}.Test|Any CPU.ActiveCfg = Test|Any CPU
+		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Test|Any CPU.ActiveCfg = Release|Any CPU
+		{873D862A-CAAD-4C36-8388-56E70CB16A1E}.Test|Any CPU.Build.0 = Release|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686}.Test|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +65,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B071AA63-BB97-4F57-BC33-D336F98C02D0} = {0EC51239-3F23-407B-BEF3-5DC29EA6EC2A}
 		{873D862A-CAAD-4C36-8388-56E70CB16A1E} = {8A58C419-018E-495E-AF9B-DF0FA2EA34C9}
-		{9C88D460-1215-4DBF-89EA-0B4B5D92C1FE} = {64783591-4E58-45D1-9E64-9A2911C4F1CD}
+		{30F74ADB-DDC8-4D25-BE03-3CFB0E147686} = {64783591-4E58-45D1-9E64-9A2911C4F1CD}
 	EndGlobalSection
 EndGlobal

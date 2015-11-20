@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Framework.Configuration;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
 using Xunit;
 

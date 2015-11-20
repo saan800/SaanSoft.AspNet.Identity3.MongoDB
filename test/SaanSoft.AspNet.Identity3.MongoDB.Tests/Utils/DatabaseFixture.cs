@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Framework.Configuration;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests

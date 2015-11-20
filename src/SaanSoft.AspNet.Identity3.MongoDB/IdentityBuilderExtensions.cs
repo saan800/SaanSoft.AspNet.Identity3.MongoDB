@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.AspNet.Identity;
-using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB
 {
