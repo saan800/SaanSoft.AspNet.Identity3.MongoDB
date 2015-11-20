@@ -2,7 +2,7 @@
 	"version": "1.0.0-rc1-final-06",
 	"description": "SaanSoft.AspNet.Identity3.MongoDB: A MongoDB implementation for Microsoft.AspNet.Identity database layer.",
 	"authors": [ "SaanSoft" ],
-	"tags": [ "Microsoft.AspNet.Identity", "MongoDB", "dnx451" ],
+	"tags": [ "Microsoft.AspNet.Identity", "MongoDB", "dnx451", "AspNet 5" ],
 	"projectUrl": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB",
 	"licenseUrl": "http://www.apache.org/licenses/",
 
