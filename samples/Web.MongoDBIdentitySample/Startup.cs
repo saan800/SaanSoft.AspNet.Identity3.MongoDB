@@ -82,7 +82,7 @@ namespace Web.MongoDBIdentitySample
 
 			if (env.IsDevelopment())
 			{
-				app.UseBrowserLink();
+				//app.UseBrowserLink();
 				app.UseDeveloperExceptionPage(new ErrorPageOptions { SourceCodeLineCount = 20});
 			}
 			else
