@@ -49,7 +49,7 @@ From <http://stackoverflow.com/questions/27553952/when-is-asp-net-5-vnext-schedu
 
 
 ## Frameworks
-Currently only available for dnx451
+Currently only available for dnx451 and net451
 
 Keeping an eye on these issues for mongoDB to be available in dnxcore50
 
