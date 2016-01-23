@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;
 using Microsoft.AspNet.Hosting;
+using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -43,28 +44,30 @@ namespace Web.MongoDBIdentitySample
 			// Registers MongoDB conventions for ignoring default and blank fields
 			// NOTE: if you have registered default conventions elsewhere, probably don't need to do this
 			RegisterClassMap<ApplicationUser, IdentityRole, string>.Init();
-
+			
 			// Add Mongo Identity services to the services container.
+			// registers all of the interfaces it implements to the services as "Scoped"
 			services.AddIdentity<ApplicationUser, IdentityRole>()
-				.AddMongoDBIdentityStores<ApplicationDbContext, ApplicationUser, IdentityRole, string>(options =>
-				{
-					options.ConnectionString = Configuration["Data:DefaultConnection:ConnectionString"];        // No default, must be configured if using (eg "mongodb://localhost:27017")
-					// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
-					// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
-					// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
+					.AddMongoDBIdentityStores<ApplicationDbContext, ApplicationUser, IdentityRole, string>(options =>
+					{
+						options.ConnectionString = Configuration["Data:DefaultConnection:ConnectionString"];        // No default, must be configured if using (eg "mongodb://localhost:27017" in this project's appsettings.json)
+																													// Only required if need to create [Client] from the connection string
+																													// If you are providing the [Client] or [Database] or [UserCollection] and [RoleCollection] options instead, don't need to supply [ConnectionString]
+						// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
+						// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
+						// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
 
-					// options.UserCollectionName = [string];							// Defaults to: "AspNetUsers"
-					// options.RoleCollectionName = [string];							// Defaults to: "AspNetRoles"
-					// options.UserCollection = [IMongoCollection<TUser>];				// Defaults to: Creating user collection in [Database] using [UserCollectionName] and [CollectionSettings]
-					// options.RoleCollection = [IMongoCollection<TRole>];				// Defaults to: Creating user collection in [Database] using [RoleCollectionName] and [CollectionSettings]
-					// options.CollectionSettings = [MongoCollectionSettings];			// Defaults to: { WriteConcern = WriteConcern.WMajority } => Used when creating default [UserCollection] and [RoleCollection]
+						// options.UserCollectionName = [string];							// Defaults to: "AspNetUsers"
+						// options.RoleCollectionName = [string];							// Defaults to: "AspNetRoles"
+						// options.UserCollection = [IMongoCollection<TUser>];				// Defaults to: Creating user collection in [Database] using [UserCollectionName] and [CollectionSettings]
+						// options.RoleCollection = [IMongoCollection<TRole>];				// Defaults to: Creating user collection in [Database] using [RoleCollectionName] and [CollectionSettings]
+						// options.CollectionSettings = [MongoCollectionSettings];			// Defaults to: { WriteConcern = WriteConcern.WMajority } => Used when creating default [UserCollection] and [RoleCollection]
 
-					// options.EnsureCollectionIndexes = [bool];						// Defaults to: false => Used to ensure the User and Role collections have been created in MongoDB and indexes assigned. Only runs on first calls to user and role collections.
-					// options.CreateCollectionOptions = [CreateCollectionOptions];		// Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and User or Role collections need to be created.
-					// options.CreateIndexOptions = [CreateIndexOptions];				// Defaults to: { Background = true, Sparse = true } => Used when [EnsureCollectionIndexes] is true and any indexes need to be created.
-				})
-				.AddDefaultTokenProviders();
-
+						// options.EnsureCollectionIndexes = [bool];						// Defaults to: false => Used to ensure the User and Role collections have been created in MongoDB and indexes assigned. Only runs on first calls to user and role collections.
+						// options.CreateCollectionOptions = [CreateCollectionOptions];		// Defaults to: { AutoIndexId = true } => Used when [EnsureCollectionIndexes] is true and User or Role collections need to be created.
+						// options.CreateIndexOptions = [CreateIndexOptions];				// Defaults to: { Background = true, Sparse = true } => Used when [EnsureCollectionIndexes] is true and any indexes need to be created.
+					})
+					.AddDefaultTokenProviders();
 
 			// Add MVC services to the services container.
 			services.AddMvc();

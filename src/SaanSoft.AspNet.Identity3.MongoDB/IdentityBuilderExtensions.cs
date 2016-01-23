@@ -51,15 +51,24 @@ namespace SaanSoft.AspNet.Identity3.MongoDB
 
 			var services = new ServiceCollection();
 			services.AddScoped(contextType, provider => CreateInstance(provider, optionsAction));
-			services.AddScoped(
-				typeof(IIdentityDatabaseContext<,,>).MakeGenericType(userType, roleType, keyType),
-				provider => CreateInstance(provider, optionsAction));
-			services.AddScoped(
-				typeof(IUserStore<>).MakeGenericType(userType),
-				userStoreType);
-			services.AddScoped(
-				typeof(IRoleStore<>).MakeGenericType(roleType),
-				roleStoreType);
+			services.AddScoped(typeof(IIdentityDatabaseContext<,,>).MakeGenericType(userType, roleType, keyType), provider => CreateInstance(provider, optionsAction));
+
+			services.AddScoped(typeof(IUserStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserLoginStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserRoleStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserClaimStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserPasswordStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserSecurityStampStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserEmailStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserLockoutStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserPhoneNumberStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IQueryableUserStore<>).MakeGenericType(userType), userStoreType);
+			services.AddScoped(typeof(IUserTwoFactorStore<>).MakeGenericType(userType), userStoreType);
+
+			services.AddScoped(typeof(IRoleStore<>).MakeGenericType(roleType), roleStoreType);
+			services.AddScoped(typeof(IQueryableRoleStore<>).MakeGenericType(roleType), roleStoreType);
+			services.AddScoped(typeof(IRoleClaimStore<>).MakeGenericType(roleType), roleStoreType);
+
 			return services;
 		}
 
