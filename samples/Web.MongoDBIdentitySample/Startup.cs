@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Diagnostics;
-using Microsoft.AspNet.Hosting;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,19 +17,16 @@ using Web.MongoDBIdentitySample.Services;
 
 namespace Web.MongoDBIdentitySample
 {
-	public class Startup
-	{
-		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
-		{
+	public class Startup {
+		public Startup(IHostingEnvironment env) {
 			// Set up configuration sources.
 			var builder = new ConfigurationBuilder()
-				.SetBasePath(appEnv.ApplicationBasePath)
+				.SetBasePath(env.WebRootPath)
 				.AddJsonFile("appsettings.json")
 				.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
 				.AddEnvironmentVariables();
 
-			if (env.IsDevelopment())
-			{
+			if(env.IsDevelopment()) {
 				// For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
 				builder.AddUserSecrets();
 			}
@@ -39,23 +37,21 @@ namespace Web.MongoDBIdentitySample
 		public IConfigurationRoot Configuration { get; set; }
 
 		// This method gets called by the runtime. Use this method to add services to the container.
-		public void ConfigureServices(IServiceCollection services)
-		{
+		public void ConfigureServices(IServiceCollection services) {
 			// Registers MongoDB conventions for ignoring default and blank fields
 			// NOTE: if you have registered default conventions elsewhere, probably don't need to do this
 			RegisterClassMap<ApplicationUser, IdentityRole, string>.Init();
-			
+
 			// Add Mongo Identity services to the services container.
 			// registers all of the interfaces it implements to the services as "Scoped"
 			services.AddIdentity<ApplicationUser, IdentityRole>()
-					.AddMongoDBIdentityStores<ApplicationDbContext, ApplicationUser, IdentityRole, string>(options =>
-					{
+					.AddMongoDBIdentityStores<ApplicationDbContext, ApplicationUser, IdentityRole, string>(options => {
 						options.ConnectionString = Configuration["Data:DefaultConnection:ConnectionString"];        // No default, must be configured if using (eg "mongodb://localhost:27017" in this project's appsettings.json)
 																													// Only required if need to create [Client] from the connection string
 																													// If you are providing the [Client] or [Database] or [UserCollection] and [RoleCollection] options instead, don't need to supply [ConnectionString]
-						// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
-						// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
-						// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
+																													// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
+																													// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
+																													// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
 
 						// options.UserCollectionName = [string];							// Defaults to: "AspNetUsers"
 						// options.RoleCollectionName = [string];							// Defaults to: "AspNetRoles"
@@ -78,22 +74,19 @@ namespace Web.MongoDBIdentitySample
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-		{
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory) {
 			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
 			loggerFactory.AddDebug();
 
-			if (env.IsDevelopment())
-			{
+			if(env.IsDevelopment()) {
 				//app.UseBrowserLink();
-				app.UseDeveloperExceptionPage(new ErrorPageOptions { SourceCodeLineCount = 20});
+				app.UseDeveloperExceptionPage(new DeveloperExceptionPageOptions { SourceCodeLineCount = 20 });
 			}
-			else
-			{
+			else {
 				app.UseExceptionHandler("/Home/Error");
 			}
 
-			app.UseIISPlatformHandler(options => options.AuthenticationDescriptions.Clear());
+			//app.UseIISPlatformHandler(options => options.AuthenticationDescriptions.Clear());
 
 			app.UseStaticFiles();
 
@@ -101,8 +94,7 @@ namespace Web.MongoDBIdentitySample
 
 			// To configure external authentication please see http://go.microsoft.com/fwlink/?LinkID=532715
 
-			app.UseMvc(routes =>
-			{
+			app.UseMvc(routes => {
 				routes.MapRoute(
 					name: "default",
 					template: "{controller=Home}/{action=Index}/{id?}");
@@ -110,6 +102,21 @@ namespace Web.MongoDBIdentitySample
 		}
 
 		// Entry point for the application.
-		public static void Main(string[] args) => WebApplication.Run<Startup>(args);
+		public static void Main(string[] args) {
+			var host = new WebHostBuilder()
+						.UseKestrel()
+						.UseContentRoot(Directory.GetCurrentDirectory())
+						.UseConfiguration(new ConfigurationBuilder()
+							.AddJsonFile("hosting.json", optional: true)
+							.AddEnvironmentVariables(prefix: "ASPNETCORE_")
+							.AddCommandLine(args)
+							.Build()
+						)
+						.UseIISIntegration()
+						.UseStartup<Startup>()
+						.Build();
+
+			host.Run();
+		}
 	}
 }

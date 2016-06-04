@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNet.Identity;
-using Microsoft.AspNet.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using SaanSoft.AspNet.Identity3.MongoDB;
 using Web.MongoDBIdentitySample.Models;
 
@@ -28,7 +28,7 @@ namespace Web.MongoDBIdentitySample.Controllers
 		private readonly IQueryableRoleStore<IdentityRole> _queryableRoleStore;
 
 		public DiTestController(
-			// the Microsoft.AspNet.Identity User and Role Manager classes
+			// the Microsoft.AspNetCore.Identity User and Role Manager classes
 			RoleManager<IdentityRole> roleManager,
 			UserManager<ApplicationUser> userManager,
 			

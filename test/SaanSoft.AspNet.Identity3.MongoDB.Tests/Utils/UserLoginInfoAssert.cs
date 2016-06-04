@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Identity;
 using Xunit;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests
