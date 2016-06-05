@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Identity;
 using Xunit;
 
 namespace SaanSoft.AspNet.Identity3.MongoDB.Tests

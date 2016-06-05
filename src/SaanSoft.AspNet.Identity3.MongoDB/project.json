@@ -1,26 +1,26 @@
-﻿{
-	"version": "1.0.0-rc1-final-09",
-	"description": "SaanSoft.AspNet.Identity3.MongoDB: A MongoDB implementation for Microsoft.AspNet.Identity database layer.",
+{
+	"version": "1.0.0-rc2-final-09",
+	"description": "SaanSoft.AspNet.Identity3.MongoDB: A MongoDB implementation for Microsoft.AspNetCore.Identity database layer.",
 	"authors": [ "SaanSoft" ],
-	"tags": [ "Microsoft.AspNet.Identity", "MongoDB", "dnx451", "AspNet 5" ],
-	"projectUrl": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB",
-	"licenseUrl": "http://www.apache.org/licenses/",
-
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB.git"
+	"packOptions": {
+		"tags": [ "Microsoft.AspNetCore.Identity", "MongoDB", "net452", "AspNet 5" ],
+		"projectUrl": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB",
+		"licenseUrl": "http://www.apache.org/licenses/",
+		"repository": {
+			"type": "git",
+			"url": "https://github.com/saan800/SaanSoft.AspNet.Identity3.MongoDB.git"
+		}
 	},
 
-	"dependencies": {
-		"Microsoft.AspNet.Identity": "3.0.0-rc1-final",
-		"Microsoft.Extensions.DependencyInjection": "1.0.0-rc1-final",
-		"MongoDB.Driver": "(2.2.1,3.0.0]"
-	},
+    "dependencies": {
+        "Microsoft.AspNetCore.Identity": "1.0.0-rc2-final",
+        "Microsoft.Extensions.DependencyInjection": "1.0.0-rc2-final",
+        "MongoDB.Driver": "2.2.4"
+    },
 
 	"frameworks": {
-		"dnx451": {
+		"net452": {
 			"System.Threading.Tasks": ""
-		},
-		"net451": { }
+		}
 	}
 }

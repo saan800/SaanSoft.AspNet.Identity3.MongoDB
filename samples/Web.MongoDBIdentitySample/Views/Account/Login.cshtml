@@ -1,8 +1,8 @@
 ﻿@using System.Collections.Generic
-@using Microsoft.AspNet.Http
-@using Microsoft.AspNet.Http.Authentication
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http.Authentication
 @model LoginViewModel
-@inject SignInManager<ApplicationUser> SignInManager
+@inject SignInManager<ApplicationUser> _signInManager
 
 @{
     ViewData["Title"] = "Log in";
@@ -15,7 +15,7 @@
             <form asp-controller="Account" asp-action="Login" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" class="form-horizontal" role="form">
                 <h4>Use a local account to log in.</h4>
                 <hr />
-                <div asp-validation-summary="ValidationSummary.All" class="text-danger"></div>
+                <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group">
                     <label asp-for="Email" class="col-md-2 control-label"></label>
                     <div class="col-md-10">
@@ -57,7 +57,7 @@
             <h4>Use another service to log in.</h4>
             <hr />
             @{
-                var loginProviders = SignInManager.GetExternalAuthenticationSchemes().ToList();
+                var loginProviders = _signInManager.GetExternalAuthenticationSchemes().ToList();
                 if (loginProviders.Count == 0)
                 {
                     <div>

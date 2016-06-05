@@ -1,46 +1,50 @@
-﻿{
+{
 	"userSecretsId": "aspnet5-Web.MongoDBIdentitySample-8ef89740-96a8-494b-8974-255ab90e10c7",
 	"version": "1.0.0-*",
-	"compilationOptions": {
-		"emitEntryPoint": true
+	"buildOptions": {
+		"emitEntryPoint": true,
+		"preserveCompilationContext": true,
+		"compile": {
+			"exclude": [
+				"wwwroot",
+				"node_modules"
+			]
+		}
 	},
-
 	"dependencies": {
-		"Microsoft.AspNet.Authentication.Cookies": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Diagnostics.Entity": "7.0.0-rc1-final",
-		"Microsoft.AspNet.IISPlatformHandler": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Mvc": "6.0.0-rc1-final",
-		"Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-rc1-final",
-		"Microsoft.AspNet.Server.Kestrel": "1.0.0-rc1-final",
-		"Microsoft.AspNet.StaticFiles": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Tooling.Razor": "1.0.0-rc1-final",
+		"Microsoft.AspNetCore.Authentication.Cookies": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Diagnostics": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Mvc": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Mvc.TagHelpers": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview1-final",
+		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0-rc2-final",
+		"Microsoft.AspNetCore.StaticFiles": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Configuration.CommandLine": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Configuration.EnvironmentVariables": "1.0.0-rc2-final",
 		"Microsoft.Extensions.Configuration.FileProviderExtensions": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging.Console": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging.Debug": "1.0.0-rc1-final",
-
-		"SaanSoft.AspNet.Identity3.MongoDB": ""
+		"Microsoft.Extensions.Configuration.Json": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Logging": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Logging.Console": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Logging.Debug": "1.0.0-rc2-final",
+		"SaanSoft.AspNet.Identity3.MongoDB": "1.0.0-rc2-final-09"
 	},
 
 	"commands": {
-		"web": "Microsoft.AspNet.Server.Kestrel --server.urls http://localhost:5000"
+		"web": "Microsoft.AspNetCore.Server.Kestrel --server.urls http://localhost:5000"
 	},
 
 	"frameworks": {
-		"dnx451": { },
-		"net451": { }
+		"net452": { }
 	},
-
-	"exclude": [
-		"wwwroot",
-		"node_modules"
-	],
-	"publishExclude": [
-		"**.user",
-		"**.vspscc"
-	],
+	"publishOptions": {
+		"exclude": [
+			"**.user",
+			"**.vspscc"
+		]
+	},
 	"scripts": {
 		"prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]
 	}
