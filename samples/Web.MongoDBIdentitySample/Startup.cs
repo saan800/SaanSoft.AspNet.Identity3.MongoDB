@@ -14,6 +14,7 @@ using Microsoft.Extensions.PlatformAbstractions;
 using SaanSoft.AspNet.Identity3.MongoDB;
 using Web.MongoDBIdentitySample.Models;
 using Web.MongoDBIdentitySample.Services;
+using MongoDB.Driver;
 
 namespace Web.MongoDBIdentitySample
 {
@@ -21,7 +22,7 @@ namespace Web.MongoDBIdentitySample
 		public Startup(IHostingEnvironment env) {
 			// Set up configuration sources.
 			var builder = new ConfigurationBuilder()
-				.SetBasePath(env.WebRootPath)
+				.SetBasePath(env.ContentRootPath)
 				.AddJsonFile("appsettings.json")
 				.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
 				.AddEnvironmentVariables();
@@ -49,9 +50,9 @@ namespace Web.MongoDBIdentitySample
 						options.ConnectionString = Configuration["Data:DefaultConnection:ConnectionString"];        // No default, must be configured if using (eg "mongodb://localhost:27017" in this project's appsettings.json)
 																													// Only required if need to create [Client] from the connection string
 																													// If you are providing the [Client] or [Database] or [UserCollection] and [RoleCollection] options instead, don't need to supply [ConnectionString]
-																													// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
-																													// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
-																													// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
+						// options.Client = [IMongoClient];									// Defaults to: uses either Client attached to [Database] (if supplied), otherwise it creates a new client using [ConnectionString]
+						// options.DatabaseName = [string];									// Defaults to: "AspNetIdentity"
+						// options.Database = [IMongoDatabase];								// Defaults to: Creating Database using [DatabaseName] and [Client]
 
 						// options.UserCollectionName = [string];							// Defaults to: "AspNetUsers"
 						// options.RoleCollectionName = [string];							// Defaults to: "AspNetRoles"
